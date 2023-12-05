@@ -1,0 +1,59 @@
+package distance
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+
+	"github.com/tidwall/gjson"
+)
+
+type Coordinate struct {
+	Longitude float64
+	Latitude  float64
+}
+
+func geocodingURL(city string) string {
+	encodedCity := url.QueryEscape(city)
+
+	return fmt.Sprintf("%s/geocoding/v5/mapbox.places/%s.json?country=pl&language=pl&access_token=%s", host, encodedCity, os.Getenv("MAPS_TOKEN"))
+}
+
+func Coordinates(place string) (Coordinate, error) {
+	response, err := http.Get(geocodingURL(place))
+	if err != nil {
+		return Coordinate{}, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return Coordinate{}, errors.New(fmt.Sprintf("Error: HTTP request status code is %d instead of 200", response.StatusCode))
+	}
+
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return Coordinate{}, err
+	}
+	responseJSON := string(bodyBytes)
+
+	features := gjson.Get(responseJSON, "features")
+	if !features.Exists() {
+		return Coordinate{}, nil
+	}
+
+	cityCenter := features.Get("0.center")
+	longitude := cityCenter.Get("0")
+	latitude := cityCenter.Get("1")
+
+	if !longitude.Exists() || !latitude.Exists() {
+		return Coordinate{}, nil
+	}
+
+	return Coordinate{
+		Latitude:  latitude.Float(),
+		Longitude: longitude.Float(),
+	}, nil
+}
