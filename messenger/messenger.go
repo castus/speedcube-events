@@ -1,8 +1,7 @@
-package messanger
+package messenger
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -11,22 +10,34 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
+var log = slog.New(slog.NewTextHandler(os.Stdout, nil))
+
 func Send(competitions diff.Differences) {
+	m := mail.NewV3Mail()
+	from := mail.NewEmail(os.Getenv("MAIL_FROM_NAME"), os.Getenv("MAIL_FROM_EMAIL"))
+	m.SetFrom(from)
+
+	m.Subject = "Kalendarz imprez się zmienił"
+
 	msg := prepareMessage(competitions)
-	from := mail.NewEmail("Krzysztof Romanowski", "kontakt@krzysztofromanowski.pl")
-	subject := "Kalendarz imprez się zmienił"
-	to := mail.NewEmail("Krzysztof Romanowski", "castus.pl@gmail.com")
-	plainTextContent := ""
-	htmlContent := msg
-	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+	c := mail.NewContent("text/html", msg)
+	m.AddContent(c)
+
+	p := mail.NewPersonalization()
+	var tos = []*mail.Email{}
+	splitEmails := strings.Split(os.Getenv("NOTIFY_EMAILS"), ",")
+	for _, item := range splitEmails {
+		tos = append(tos, mail.NewEmail(item, item))
+	}
+	p.AddTos(tos...)
+	m.AddPersonalizations(p)
+
 	client := sendgrid.NewSendClient(os.Getenv("MAIL_TOKEN"))
-	response, err := client.Send(message)
+	_, err := client.Send(m)
 	if err != nil {
-		log.Println(err)
+		log.Error("Couldn't send email", err)
 	} else {
-		fmt.Println(response.StatusCode)
-		fmt.Println(response.Body)
-		fmt.Println(response.Headers)
+		log.Info("Email send")
 	}
 }
 

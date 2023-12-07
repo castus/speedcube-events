@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -34,6 +33,7 @@ func GetClient() (*dynamodb.Client, error) {
 	}
 
 	c := dynamodb.NewFromConfig(cfg)
+
 	return c, nil
 }
 
@@ -48,9 +48,47 @@ func PutItem(c *dynamodb.Client, competition Competition) (err error) {
 		Item:      item,
 	})
 	if err != nil {
-		log.Printf("Couldn't add item to table. Here's why: %v\n", err)
+		log.Error("Couldn't add item to table. Here's why", err)
 	}
 	return err
+}
+
+func AddItemsBatch(c *dynamodb.Client, items []Competition) (int, error) {
+	var err error
+	var item map[string]types.AttributeValue
+	maxItems := 5
+	written := 0
+	batchSize := 25 // DynamoDB allows a maximum batch size of 25 items.
+	start := 0
+	end := start + batchSize
+	for start < maxItems && start < len(items) {
+		var writeReqs []types.WriteRequest
+		if end > len(items) {
+			end = len(items)
+		}
+		for _, competition := range items[start:end] {
+			item, err = attributevalue.MarshalMap(competition)
+			if err != nil {
+				log.Error("Couldn't marshal competition", competition.Name, "Here's why: ", err)
+			} else {
+				writeReqs = append(
+					writeReqs,
+					types.WriteRequest{PutRequest: &types.PutRequest{Item: item}},
+				)
+			}
+		}
+		_, err = c.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{tableName: writeReqs}})
+		if err != nil {
+			log.Error("Couldn't add a batch of items to table", tableName, "Here's why", err)
+		} else {
+			written += len(writeReqs)
+		}
+		start = end
+		end += batchSize
+	}
+
+	return written, err
 }
 
 func DeleteItem(c *dynamodb.Client, competition Competition) error {
@@ -67,9 +105,20 @@ func DeleteItem(c *dynamodb.Client, competition Competition) error {
 		Key:       map[string]types.AttributeValue{"Id": id, "Name": name},
 	})
 	if err != nil {
-		log.Printf("Couldn't delete %v from the table. Here's why: %v\n", competition.Id, err)
+		log.Error("Couldn't delete item from the table.", competition.Id, err)
 	}
 	return err
+}
+
+func DeleteItems(c *dynamodb.Client, competitions []Competition) error {
+	for _, item := range competitions {
+		err := DeleteItem(c, item)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func AllItems(c *dynamodb.Client) ([]Competition, error) {
@@ -80,11 +129,11 @@ func AllItems(c *dynamodb.Client) ([]Competition, error) {
 		TableName: aws.String(tableName),
 	})
 	if err != nil {
-		log.Println(err)
+		log.Error("Could fetch all items", err)
 	} else {
 		err = attributevalue.UnmarshalListOfMaps(response.Items, &competitions)
 		if err != nil {
-			log.Printf("Couldn't unmarshal query response. Here's why: %v\n", err)
+			log.Error("Couldn't unmarshal query response. Here's why:", err)
 		}
 	}
 	return competitions, err
