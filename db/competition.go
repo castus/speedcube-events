@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/castus/speedcube-events/logger"
@@ -21,12 +20,21 @@ type Competition struct {
 var log = logger.Default()
 
 func (c Competition) IsEqualTo(competition Competition) bool {
-	if reflect.DeepEqual(c, competition) {
-		return true
-	} else {
+	if c.Id != competition.Id &&
+		c.Header != competition.Header &&
+		c.Name != competition.Name &&
+		c.URL != competition.URL &&
+		c.Place != competition.Place &&
+		c.LogoURL != competition.LogoURL &&
+		c.ContactName != competition.ContactName &&
+		c.ContactURL != competition.ContactURL &&
+		c.HasWCA != competition.HasWCA &&
+		c.Date != competition.Date {
 		log.Debug("Item changed", "from", c, "to", competition)
 		return false
 	}
+
+	return true
 }
 
 func (c Competition) PrintHTMLContent() string {
