@@ -1,10 +1,8 @@
-package scrapper
+package dataFetch
 
 import (
 	"fmt"
-	"log/slog"
-	"net/http"
-	"os"
+	"github.com/castus/speedcube-events/logger"
 	"regexp"
 	"strings"
 	"unicode"
@@ -18,24 +16,12 @@ const (
 	eventsPath = "kalendarz-imprez"
 )
 
-func Scrap() []db.Competition {
-	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+var log = logger.Default()
 
-	var competitions []db.Competition
+func ScrapCompetitions() db.Competitions {
+	var competitions db.Competitions
 
-	res, err := http.Get(fmt.Sprintf("%s/%s", host, eventsPath))
-	if err != nil {
-		log.Error("Couldn't fetch page to scrap", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		log.Error("Status code error", "status code", res.StatusCode, "status", res.Status)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Error("Couldn't load HTML", err)
-	}
+	doc := fetchWebPageBody(fmt.Sprintf("%s/%s", host, eventsPath))
 
 	doc.Find("#competitions-following .row").Each(func(i int, row *goquery.Selection) {
 		header := row.Prev().Text()
@@ -55,6 +41,11 @@ func Scrap() []db.Competition {
 
 			url, _ := s.Find(".ulr-title a").Attr("href")
 			competition.URL = url
+			if strings.Contains(url, WCAHost) {
+				elements := strings.Split(url, "/")
+				competition.WCAId = elements[len(elements)-1]
+				log.Info("Found WCA URL, extracting ID.", "WCAId", competition.WCAId, "URL", competition.URL)
+			}
 
 			logo, _ := s.Find(".ulr-image").Attr("style")
 			logoURL := logoURL(logo)

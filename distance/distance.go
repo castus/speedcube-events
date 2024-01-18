@@ -2,6 +2,8 @@ package distance
 
 import (
 	"fmt"
+	"github.com/castus/speedcube-events/db"
+	"github.com/castus/speedcube-events/logger"
 	"math"
 	"time"
 )
@@ -14,6 +16,33 @@ type TravelInfo struct {
 const (
 	host = "https://api.mapbox.com"
 )
+
+var log = logger.Default()
+
+func IncludeTravelInfo(competitions db.Competitions, databaseItems db.Competitions) db.Competitions {
+	var newArray db.Competitions
+	for _, item := range competitions {
+		dbItem := databaseItems.FindByID(item.Id)
+		if item.Place == "zawody online" || (dbItem != nil && (dbItem.Distance != "" || dbItem.Duration != "")) {
+			log.Info("No need to fetch travel info", "eventID", item.Id)
+			newArray = append(newArray, *dbItem)
+			continue
+		}
+
+		log.Info("Trying to fetch travel info", "eventID", item.Id)
+		travelInfo, err := Distance(item.Place)
+		if err == nil {
+			log.Info("Success to fetch travel info", "eventID", item.Id, "distance", travelInfo.Distance, "duration", travelInfo.Duration)
+			item.Distance = travelInfo.Distance
+			item.Duration = travelInfo.Duration
+		} else {
+			log.Error("Fail to fetch travel info", "eventID", item.Id, "error", err)
+		}
+		newArray = append(newArray, item)
+	}
+
+	return newArray
+}
 
 func Distance(city string) (TravelInfo, error) {
 	coordinates, err := Coordinates(city)
