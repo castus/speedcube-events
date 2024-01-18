@@ -1,18 +1,21 @@
 package main
 
 import (
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/diff"
 	"github.com/castus/speedcube-events/distance"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
-	"github.com/castus/speedcube-events/scrapper"
 )
 
 var log = logger.Default()
 
 func main() {
-	scrappedCompetitions := scrapper.Scrap()
+	scrappedCompetitions := dataFetch.ScrapCompetitions()
+	//printer.PrettyPrint(scrappedCompetitions)
+
 	c, err := db.GetClient()
 	if err != nil {
 		log.Error("Couldn't get database client", err)
@@ -25,52 +28,41 @@ func main() {
 		panic(err)
 	}
 
-	itemsToNotify := diff.Diff(scrappedCompetitions, dbCompetitions)
-	displayLogMessage(itemsToNotify)
+	diffIDs := diff.Diff(scrappedCompetitions, dbCompetitions)
+	displayLogMessage(diffIDs)
 
-	if itemsToNotify.IsEmpty() {
+	fullDataCompetitions := updateDatabase(scrappedCompetitions, dbCompetitions, c, diffIDs.Removed)
+
+	if diffIDs.IsEmpty() {
 		log.Info("No changes in the events, skipping sending email.")
 	} else {
-		itemsToNotify.Added = addTravelInfoToItems(itemsToNotify.Added)
-		itemsToNotify.Changed = addTravelInfoToItems(itemsToNotify.Changed)
-
-		itemsToSaveToDatabase := itemsToNotify.Added
-		itemsToSaveToDatabase = append(itemsToSaveToDatabase, itemsToNotify.Changed...)
-		writes, err := db.AddItemsBatch(c, itemsToSaveToDatabase)
-		if err != nil {
-			log.Error("Couldn't save batch of items to database", err, "Saved items", writes, "All items", len(itemsToSaveToDatabase))
-			panic(err)
-		}
-		messenger.Send(itemsToNotify)
-	}
-
-	if itemsToNotify.HasRemoved() {
-		log.Info("Some items have been removed, removing from database")
-		err = db.DeleteItems(c, itemsToNotify.Removed)
-		if err != nil {
-			log.Error("Couldn't delete item", err)
-			panic(err)
-		}
+		messenger.Send(diffIDs, fullDataCompetitions)
 	}
 }
 
-func addTravelInfoToItems(competitions []db.Competition) []db.Competition {
-	var newArray []db.Competition
-	for _, item := range competitions {
-		if item.Place == "zawody online" || item.Distance != "" || item.Duration != "" {
-			newArray = append(newArray, item)
-			continue
-		}
+func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {
+	log.Info("Trying to update database.")
+	scrappedCompetitions = dataFetch.IncludeEvents(scrappedCompetitions)
+	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions)
+	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions)
+	scrappedCompetitions = distance.IncludeTravelInfo(scrappedCompetitions, dbCompetitions)
+	writes, err := db.AddItemsBatch(client, scrappedCompetitions)
+	if err != nil {
+		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
+		panic(err)
+	}
+	log.Info("Saved batch of items to database", "savedItems", writes, "allItems", len(scrappedCompetitions))
 
-		travelInfo, err := distance.Distance(item.Place)
-		if err == nil {
-			item.Distance = travelInfo.Distance
-			item.Duration = travelInfo.Duration
+	if len(itemsToRemove) > 0 {
+		log.Info("Some items have been removed, removing from database")
+		err = db.DeleteItems(client, itemsToRemove)
+		if err != nil {
+			log.Error("Couldn't delete item", "error", err)
+			panic(err)
 		}
-		newArray = append(newArray, item)
 	}
 
-	return newArray
+	return scrappedCompetitions
 }
 
 func displayLogMessage(diffs diff.Differences) {
