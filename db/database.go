@@ -125,11 +125,11 @@ func AllItems(c *dynamodb.Client) ([]Competition, error) {
 		TableName: aws.String(tableName()),
 	})
 	if err != nil {
-		log.Error("Could fetch all items", err)
+		log.Error("Could fetch all items", "error", err)
 	} else {
 		err = attributevalue.UnmarshalListOfMaps(response.Items, &competitions)
 		if err != nil {
-			log.Error("Couldn't unmarshal query response. Here's why:", err)
+			log.Error("Couldn't unmarshal query response. Here's why:", "error", err)
 		}
 	}
 	return competitions, err
