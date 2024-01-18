@@ -134,13 +134,3 @@ func AllItems(c *dynamodb.Client) ([]Competition, error) {
 	}
 	return competitions, err
 }
-
-func FindById(id string, competitions []Competition) *Competition {
-	for _, item := range competitions {
-		if item.Id == id {
-			return &item
-		}
-	}
-
-	return nil
-}
