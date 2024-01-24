@@ -46,11 +46,12 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
-    - name: Deploy to ArgoCD
+    - name: Deploy to charts repo
       run: |
         set -e
         image_version=$(echo "${{ steps.meta.outputs.tags }}" | cut -d ":" -f 2)
         curl -w "%{response_code}" -X POST https://api.github.com/repos/castus/speedcube-events-charts/dispatches \
-        -H 'Accept: application/vnd.github.everest-preview+json' \
-        -u ${{ secrets.CHARTS_DEPLOY_TOKEN }} \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer ${{ secrets.CHARTS_DEPLOY_TOKEN }}" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
         --data '{"event_type": "deploy", "client_payload": { "image_tag": "'"$image_version"'" }}'
