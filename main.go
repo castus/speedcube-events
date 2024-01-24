@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
@@ -36,7 +37,11 @@ func main() {
 	if diffIDs.IsEmpty() {
 		log.Info("No changes in the events, skipping sending email.")
 	} else {
-		messenger.Send(diffIDs, fullDataCompetitions)
+		message := ""
+		message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForAdded(diffIDs, fullDataCompetitions))
+		message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForChanged(diffIDs, fullDataCompetitions))
+		message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForRemoved(diffIDs, dbCompetitions))
+		messenger.Send(message)
 	}
 }
 
@@ -54,8 +59,15 @@ func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Comp
 	log.Info("Saved batch of items to database", "savedItems", writes, "allItems", len(scrappedCompetitions))
 
 	if len(itemsToRemove) > 0 {
+		var competitionsToRemove db.Competitions
+		for _, id := range itemsToRemove {
+			dbItem := dbCompetitions.FindByID(id)
+			if dbItem != nil {
+				competitionsToRemove = append(competitionsToRemove, *dbItem)
+			}
+		}
 		log.Info("Some items have been removed, removing from database")
-		err = db.DeleteItems(client, itemsToRemove)
+		err = db.DeleteItems(client, competitionsToRemove)
 		if err != nil {
 			log.Error("Couldn't delete item", "error", err)
 			panic(err)
