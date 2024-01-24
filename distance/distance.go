@@ -22,10 +22,16 @@ var log = logger.Default()
 func IncludeTravelInfo(competitions db.Competitions, databaseItems db.Competitions) db.Competitions {
 	var newArray db.Competitions
 	for _, item := range competitions {
+		if item.Place == "zawody online" {
+			log.Info("No need to fetch travel info, detected ONLINE event", "eventID", item.Id)
+			newArray = append(newArray, item)
+			continue
+		}
+
 		dbItem := databaseItems.FindByID(item.Id)
-		if item.Place == "zawody online" || (dbItem != nil && (dbItem.Distance != "" || dbItem.Duration != "")) {
-			log.Info("No need to fetch travel info", "eventID", item.Id)
-			newArray = append(newArray, *dbItem)
+		if dbItem != nil && (dbItem.Distance != "" || dbItem.Duration != "") {
+			log.Info("No need to fetch travel info, event has already have it", "eventID", item.Id)
+			newArray = append(newArray, item)
 			continue
 		}
 

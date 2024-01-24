@@ -91,14 +91,18 @@ func AddItemsBatch(c *dynamodb.Client, items []Competition) (int, error) {
 	return written, err
 }
 
-func DeleteItem(c *dynamodb.Client, ID string) error {
+func DeleteItem(c *dynamodb.Client, ID string, name string) error {
 	id, err := attributevalue.Marshal(ID)
+	if err != nil {
+		panic(err)
+	}
+	nameValue, err := attributevalue.Marshal(name)
 	if err != nil {
 		panic(err)
 	}
 	_, err = c.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
 		TableName: aws.String(tableName()),
-		Key:       map[string]types.AttributeValue{"Id": id},
+		Key:       map[string]types.AttributeValue{"Id": id, "Name": nameValue},
 	})
 	if err != nil {
 		log.Error("Couldn't delete item from the table.", ID, err)
@@ -106,9 +110,9 @@ func DeleteItem(c *dynamodb.Client, ID string) error {
 	return err
 }
 
-func DeleteItems(c *dynamodb.Client, IDs []string) error {
-	for _, id := range IDs {
-		err := DeleteItem(c, id)
+func DeleteItems(c *dynamodb.Client, items Competitions) error {
+	for _, item := range items {
+		err := DeleteItem(c, item.Id, item.Name)
 		if err != nil {
 			return err
 		}
