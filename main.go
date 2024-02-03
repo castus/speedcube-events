@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
@@ -9,11 +10,15 @@ import (
 	"github.com/castus/speedcube-events/distance"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
+	"os"
+	"strings"
 )
 
 var log = logger.Default()
 
 func main() {
+	args := os.Args
+
 	scrappedCompetitions := dataFetch.ScrapCompetitions()
 	//printer.PrettyPrint(scrappedCompetitions)
 
@@ -27,6 +32,22 @@ func main() {
 	if err != nil {
 		log.Error("Couldn't fetch items from database", err)
 		panic(err)
+	}
+
+	if strings.Contains(args[1], "exportDatabase") {
+		j, _ := json.MarshalIndent(dbCompetitions, "", "    ")
+		file, err := os.Create("data.json")
+		if err != nil {
+			log.Error("Couldn't create database file", err)
+			panic(err)
+		}
+
+		defer file.Close()
+		_, err = file.Write(j)
+
+		log.Info("Database file created.")
+
+		return
 	}
 
 	diffIDs := diff.Diff(scrappedCompetitions, dbCompetitions)

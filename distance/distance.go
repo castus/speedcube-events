@@ -31,6 +31,8 @@ func IncludeTravelInfo(competitions db.Competitions, databaseItems db.Competitio
 		dbItem := databaseItems.FindByID(item.Id)
 		if dbItem != nil && (dbItem.Distance != "" || dbItem.Duration != "") {
 			log.Info("No need to fetch travel info, event has already have it", "eventID", item.Id)
+			item.Distance = dbItem.Distance
+			item.Duration = dbItem.Duration
 			newArray = append(newArray, item)
 			continue
 		}
