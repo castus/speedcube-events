@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/diff"
 	"github.com/castus/speedcube-events/distance"
+	"github.com/castus/speedcube-events/exporter"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
 	"os"
@@ -34,19 +34,8 @@ func main() {
 		panic(err)
 	}
 
-	if strings.Contains(args[1], "exportDatabase") {
-		j, _ := json.MarshalIndent(dbCompetitions, "", "    ")
-		file, err := os.Create("data.json")
-		if err != nil {
-			log.Error("Couldn't create database file", err)
-			panic(err)
-		}
-
-		defer file.Close()
-		_, err = file.Write(j)
-
-		log.Info("Database file created.")
-
+	if len(args) > 1 && strings.Contains(args[1], "exportDatabase") {
+		exporter.Export(dbCompetitions)
 		return
 	}
 
