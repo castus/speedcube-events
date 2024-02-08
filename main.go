@@ -20,6 +20,10 @@ func main() {
 	args := os.Args
 
 	scrappedCompetitions := dataFetch.ScrapCompetitions()
+	if len(scrappedCompetitions) == 0 {
+		log.Info("No scraped competitions, finishing")
+		return
+	}
 	//printer.PrettyPrint(scrappedCompetitions)
 
 	c, err := db.GetClient()

@@ -3,6 +3,7 @@ package dataFetch
 import (
 	"fmt"
 	"github.com/castus/speedcube-events/logger"
+	"net/http"
 	"regexp"
 	"strings"
 	"unicode"
@@ -13,7 +14,7 @@ import (
 
 const (
 	host       = "https://www.speedcubing.pl"
-	eventsPath = "kalendarz-imprez"
+	eventsPath = "kalendarz-impreza"
 )
 
 var log = logger.Default()
@@ -21,7 +22,10 @@ var log = logger.Default()
 func ScrapCompetitions() db.Competitions {
 	var competitions db.Competitions
 
-	doc := fetchWebPageBody(fmt.Sprintf("%s/%s", host, eventsPath))
+	doc, ok := fetchWebPageBody(fmt.Sprintf("%s/%s", host, eventsPath))
+	if !ok {
+		return competitions
+	}
 
 	doc.Find("#competitions-following .row").Each(func(i int, row *goquery.Selection) {
 		header := row.Prev().Text()
@@ -77,6 +81,26 @@ func ScrapCompetitions() db.Competitions {
 	})
 
 	return competitions
+}
+
+func fetchWebPageBody(URL string) (*goquery.Document, bool) {
+	res, err := http.Get(URL)
+	if err != nil {
+		log.Error("Couldn't fetch page to scrap", "error", err, "url", URL)
+		return nil, false
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Error("Status code error", "status code", res.StatusCode, "status", res.Status)
+		return nil, false
+	}
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Error("Couldn't load HTML", "error", err, "url", URL)
+		return nil, false
+	}
+
+	return doc, true
 }
 
 func normalizeString(s string) string {

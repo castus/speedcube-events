@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/castus/speedcube-events/db"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,7 +31,11 @@ func IncludeRegistrations(competitions db.Competitions) db.Competitions {
 func registrations(URL string) int {
 	webURL := fmt.Sprintf("%s/%s", URL, registrationsPath)
 	log.Info("Trying to fetch registrations page", "webURL", webURL)
-	doc := fetchWebPageBody(webURL)
+	doc, ok := fetchWebPageBody(webURL)
+
+	if !ok {
+		return 0
+	}
 
 	numberOfRegistrations := doc.Find("#competition-data table tbody tr").Size()
 	log.Info("Found registrations.", "numberOfRegistrations", numberOfRegistrations, "webURL", webURL)
@@ -65,7 +68,11 @@ func generalInfo(URL string) GeneralInfo {
 
 	webURL := fmt.Sprintf("%s", URL)
 	log.Info("Trying to fetch general info page", "webURL", webURL)
-	doc := fetchWebPageBody(webURL)
+	doc, ok := fetchWebPageBody(webURL)
+
+	if !ok {
+		return gi
+	}
 
 	log.Info("Trying to find main event and competitor limit", "webURL", webURL)
 	doc.Find("#general-info .dl-horizontal dt").Each(func(i int, s *goquery.Selection) {
@@ -96,21 +103,4 @@ func generalInfo(URL string) GeneralInfo {
 	})
 
 	return gi
-}
-
-func fetchWebPageBody(URL string) *goquery.Document {
-	res, err := http.Get(URL)
-	if err != nil {
-		log.Error("Couldn't fetch page to scrap", "error", err, "url", URL)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		log.Error("Status code error", "status code", res.StatusCode, "status", res.Status)
-	}
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Error("Couldn't load HTML", "error", err, "url", URL)
-	}
-
-	return doc
 }
