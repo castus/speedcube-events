@@ -14,7 +14,7 @@ import (
 
 const (
 	host       = "https://www.speedcubing.pl"
-	eventsPath = "kalendarz-impreza"
+	eventsPath = "kalendarz-imprez"
 )
 
 var log = logger.Default()
