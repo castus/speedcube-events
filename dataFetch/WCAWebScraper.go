@@ -15,11 +15,11 @@ const (
 	WCAHost           = "worldcubeassociation.org"
 )
 
-func IncludeRegistrations(competitions db.Competitions) db.Competitions {
+func IncludeRegistrations(competitions db.Competitions, fetcher DataFetcher) db.Competitions {
 	var newCompetitions db.Competitions
 	for _, competition := range competitions {
 		if competition.HasWCAPage() {
-			competition.Registered = registrations(competition.URL)
+			competition.Registered = registrations(competition.URL, fetcher)
 			time.Sleep(time.Millisecond * 500)
 		}
 		newCompetitions = append(newCompetitions, competition)
@@ -28,12 +28,16 @@ func IncludeRegistrations(competitions db.Competitions) db.Competitions {
 	return newCompetitions
 }
 
-func registrations(URL string) int {
+func registrations(URL string, fetcher DataFetcher) int {
 	webURL := fmt.Sprintf("%s/%s", URL, registrationsPath)
 	log.Info("Trying to fetch registrations page", "webURL", webURL)
-	doc, ok := fetchWebPageBody(webURL)
-
+	r, ok := fetcher.Fetch(webURL)
 	if !ok {
+		return 0
+	}
+	doc, err := goquery.NewDocumentFromReader(r)
+
+	if err != nil {
 		return 0
 	}
 
@@ -48,11 +52,11 @@ type GeneralInfo struct {
 	CompetitorLimit int
 }
 
-func IncludeGeneralInfo(competitions db.Competitions) db.Competitions {
+func IncludeGeneralInfo(competitions db.Competitions, fetcher DataFetcher) db.Competitions {
 	var newCompetitions db.Competitions
 	for _, competition := range competitions {
 		if competition.HasWCAPage() {
-			gi := generalInfo(competition.URL)
+			gi := generalInfo(competition.URL, fetcher)
 			competition.MainEvent = gi.MainEvent
 			competition.CompetitorLimit = gi.CompetitorLimit
 			time.Sleep(time.Millisecond * 500)
@@ -63,14 +67,18 @@ func IncludeGeneralInfo(competitions db.Competitions) db.Competitions {
 	return newCompetitions
 }
 
-func generalInfo(URL string) GeneralInfo {
+func generalInfo(URL string, fetcher DataFetcher) GeneralInfo {
 	gi := GeneralInfo{}
 
 	webURL := fmt.Sprintf("%s", URL)
 	log.Info("Trying to fetch general info page", "webURL", webURL)
-	doc, ok := fetchWebPageBody(webURL)
-
+	r, ok := fetcher.Fetch(webURL)
 	if !ok {
+		return gi
+	}
+	doc, err := goquery.NewDocumentFromReader(r)
+
+	if err != nil {
 		return gi
 	}
 

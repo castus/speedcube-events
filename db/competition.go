@@ -13,6 +13,7 @@ type Competition struct {
 	Date                              string
 	Distance                          string
 	Duration                          string
+	HasPassed                         bool     // Event moved to Past tab
 	Events                            []string // WCA API scrap
 	MainEvent                         string   // WCA GeneralInfo scrap
 	CompetitorLimit                   int      // WCA GeneralInfo scrap

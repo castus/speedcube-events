@@ -3,7 +3,7 @@ package dataFetch
 import (
 	"fmt"
 	"github.com/castus/speedcube-events/logger"
-	"net/http"
+	"io"
 	"regexp"
 	"strings"
 	"unicode"
@@ -13,17 +13,28 @@ import (
 )
 
 const (
-	host       = "https://www.speedcubing.pl"
-	eventsPath = "kalendarz-imprez"
+	Host       = "https://www.speedcubing.pl"
+	EventsPath = "kalendarz-imprez"
 )
 
 var log = logger.Default()
 
-func ScrapCompetitions() db.Competitions {
+type DataFetcher interface {
+	Fetch(URL string) (r io.Reader, ok bool)
+}
+
+func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
 	var competitions db.Competitions
 
-	doc, ok := fetchWebPageBody(fmt.Sprintf("%s/%s", host, eventsPath))
+	URL := fmt.Sprintf("%s/%s", Host, EventsPath)
+	r, ok := fetcher.Fetch(URL)
 	if !ok {
+		return competitions
+	}
+
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		log.Error("Couldn't parse HTML with GoQuery", "error", err, "url", URL)
 		return competitions
 	}
 
@@ -53,7 +64,7 @@ func ScrapCompetitions() db.Competitions {
 
 			logo, _ := s.Find(".ulr-image").Attr("style")
 			logoURL := logoURL(logo)
-			competition.LogoURL = fmt.Sprintf("%s/%s", host, logoURL)
+			competition.LogoURL = fmt.Sprintf("%s/%s", Host, logoURL)
 
 			dateFrom := s.Find(".ulr-title").Next().Text()
 			dateFrom = strings.TrimSpace(dateFrom)
@@ -81,26 +92,6 @@ func ScrapCompetitions() db.Competitions {
 	})
 
 	return competitions
-}
-
-func fetchWebPageBody(URL string) (*goquery.Document, bool) {
-	res, err := http.Get(URL)
-	if err != nil {
-		log.Error("Couldn't fetch page to scrap", "error", err, "url", URL)
-		return nil, false
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		log.Error("Status code error", "status code", res.StatusCode, "status", res.Status)
-		return nil, false
-	}
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Error("Couldn't load HTML", "error", err, "url", URL)
-		return nil, false
-	}
-
-	return doc, true
 }
 
 func normalizeString(s string) string {

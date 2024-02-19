@@ -19,7 +19,19 @@ var log = logger.Default()
 func main() {
 	args := os.Args
 
-	scrappedCompetitions := dataFetch.ScrapCompetitions()
+	if len(args) > 1 && strings.Contains(args[1], "saveWebpage") {
+		exporter.SaveWebpageAsFile("kalendarz-imprez.html")
+		log.Info("Webpage saved on disk")
+		return
+	}
+
+	var fetcher dataFetch.DataFetcher = dataFetch.WebFetcher{}
+
+	if len(args) > 1 && strings.Contains(args[1], "mock") {
+		fetcher = dataFetch.FileFetcher{}
+	}
+
+	scrappedCompetitions := dataFetch.ScrapCompetitions(fetcher)
 	if len(scrappedCompetitions) == 0 {
 		log.Info("No scraped competitions, finishing")
 		return
@@ -45,7 +57,6 @@ func main() {
 
 	diffIDs := diff.Diff(scrappedCompetitions, dbCompetitions)
 	displayLogMessage(diffIDs)
-
 	fullDataCompetitions := updateDatabase(scrappedCompetitions, dbCompetitions, c, diffIDs.Removed)
 
 	if diffIDs.IsEmpty() {
@@ -62,8 +73,8 @@ func main() {
 func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {
 	log.Info("Trying to update database.")
 	scrappedCompetitions = dataFetch.IncludeEvents(scrappedCompetitions)
-	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions)
-	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions)
+	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions, dataFetch.WebFetcher{})
+	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions, dataFetch.WebFetcher{})
 	scrappedCompetitions = distance.IncludeTravelInfo(scrappedCompetitions, dbCompetitions)
 	writes, err := db.AddItemsBatch(client, scrappedCompetitions)
 	if err != nil {
@@ -77,15 +88,16 @@ func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Comp
 		for _, id := range itemsToRemove {
 			dbItem := dbCompetitions.FindByID(id)
 			if dbItem != nil {
+				dbItem.HasPassed = true
 				competitionsToRemove = append(competitionsToRemove, *dbItem)
 			}
 		}
-		log.Info("Some items have been removed, removing from database")
-		err = db.DeleteItems(client, competitionsToRemove)
+		writes, err := db.AddItemsBatch(client, competitionsToRemove)
 		if err != nil {
-			log.Error("Couldn't delete item", "error", err)
+			log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
 			panic(err)
 		}
+		log.Info("Some items have been removed, marking them as passed events", "savedItems", writes, "allItems", len(scrappedCompetitions))
 	}
 
 	return scrappedCompetitions
@@ -99,6 +111,6 @@ func displayLogMessage(diffs diff.Differences) {
 		log.Info("Items to add", "length", len(diffs.Added))
 	}
 	if diffs.HasRemoved() {
-		log.Info("Items to remove", "length", len(diffs.Removed))
+		log.Info("Items to mark as passed", "length", len(diffs.Removed))
 	}
 }

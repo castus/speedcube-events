@@ -3,12 +3,15 @@ package exporter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/logger"
+	"io"
 	"os"
 )
 
@@ -21,6 +24,32 @@ const (
 func Export(items db.Competitions) {
 	exportToFile(items, fileName)
 	exportToStorage(fileName)
+}
+
+func SaveWebpageAsFile(name string) {
+	URL := fmt.Sprintf("%s/%s", dataFetch.Host, dataFetch.EventsPath)
+	r, ok := dataFetch.WebFetcher{}.Fetch(URL)
+	if !ok {
+		log.Error("Couldn't fetch webpage to save it on disk")
+		return
+	}
+
+	file, err := os.Create(name)
+	if err != nil {
+		log.Error("Couldn't create webpage file", err)
+		panic(err)
+	}
+
+	defer file.Close()
+
+	content, err := io.ReadAll(r)
+	_, err = file.Write(content)
+	if err != nil {
+		log.Error("Couldn't write to a webpage file", err)
+		panic(err)
+	}
+
+	log.Info("Webpage file created.")
 }
 
 func exportToFile(items db.Competitions, fileName string) {
@@ -49,6 +78,7 @@ func exportToStorage(fileName string) {
 		log.Error("Couldn't open file to upload.", "file", fileName, "error", err)
 	} else {
 		defer file.Close()
+		log.Info("Saving to S3 bucket", "name", os.Getenv("S3_BUCKET_NAME"))
 		bucketName := os.Getenv("S3_BUCKET_NAME")
 		_, err = c.PutObject(context.TODO(), &s3.PutObjectInput{
 			Bucket: aws.String(bucketName),

@@ -24,7 +24,7 @@ func PrepareMessageForRemoved(IDs diff.Differences, competitions db.Competitions
 	var message []string
 
 	if IDs.HasRemoved() {
-		message = append(message, "<h1 style=\"margin: 40px 0 20px; font-weight: normal\">Imprezy usunięte</h1>")
+		message = append(message, "<h1 style=\"margin: 40px 0 20px; font-weight: normal\">Imprezy minione</h1>")
 		for _, item := range IDs.Removed {
 			message = append(message, FormattedItemAsHTML(*competitions.FindByID(item)))
 		}
