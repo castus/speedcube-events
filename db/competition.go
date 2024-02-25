@@ -32,6 +32,7 @@ func (c Competition) IsEqualTo(competition Competition) bool {
 		c.ContactName == competition.ContactName &&
 		c.ContactURL == competition.ContactURL &&
 		c.HasWCA == competition.HasWCA &&
+		c.HasPassed == competition.HasPassed &&
 		c.Date == competition.Date {
 		return true
 	}

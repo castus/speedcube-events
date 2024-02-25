@@ -46,8 +46,10 @@ func Diff(local db.Competitions, database db.Competitions) Differences {
 	for _, item := range database {
 		diffItem := local.FindByID(item.Id)
 		if diffItem == nil {
-			diff.Removed = append(diff.Removed, item.Id)
-			continue
+			if !item.HasPassed {
+				diff.Removed = append(diff.Removed, item.Id)
+				continue
+			}
 		}
 	}
 
