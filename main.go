@@ -62,10 +62,12 @@ func main() {
 	if diffIDs.IsEmpty() {
 		log.Info("No changes in the events, skipping sending email.")
 	} else {
-		message := ""
+		message := messenger.PrepareHeader()
 		message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForAdded(diffIDs, fullDataCompetitions))
 		message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForChanged(diffIDs, fullDataCompetitions))
 		message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForRemoved(diffIDs, dbCompetitions))
+		message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareFooter())
+
 		messenger.Send(message)
 	}
 }
