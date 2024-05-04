@@ -1,29 +1,13 @@
-This repo is an API to serve values based on time. These values are then used by LED Controllers to dim lights and set a specific color.
+# Speedcube events
 
-# How it works?
+It's a data scrapper from [worldcubeassociation.org](https://worldcubeassociation.org) and [speedcubing.pl/kalendarz-imprez](https://www.speedcubing.pl/kalendarz-imprez). It scraps Polish Speedcube events for 2024. Data is stored in S3 and presented on [https://kalendarz.krzysztofromanowski.pl/](https://kalendarz.krzysztofromanowski.pl/)
 
-Brightness and color are values from 0 to 1000. This repo  uses simple linear function that increase that number from midnight to noon and then decrease it until midnight.
+## Terraform RBAC
 
-```
-        ▲
-   1000 │                                ┌─┐
-        │                              ┌─┘ └─┐
-        │                            ┌─┘     └─┐
-        │                          ┌─┘         └─┐
-        │                        ┌─┘             └─┐
-        │                      ┌─┘                 └─┐
-        │                    ┌─┘                     └─┐
-        │                  ┌─┘                         └─┐
-        │                ┌─┘                             └─┐
-        │              ┌─┘                                 └─┐
-        │            ┌─┘                                     └─┐
-        │          ┌─┘                                         └─┐
-        │        ┌─┘                                             └─┐
-        │      ┌─┘                                                 └─┐
-        │    ┌─┘                                                     └─┐
-        │  ┌─┘                                                         └─┐
-      0 │┌─┘                                                             └─┐
-        └┴─────────────────────────────────────────────────────────────────┴─▶
-         midnight                        noon                        midnight
+To be able to run jobs in Terraform, some things has to be added:
 
+```bash
+kubectl create clusterrole job_runner --verb=get,list,watch,create,update,patch,delete --resource=jobs,jobs/status
+
+kubectl create clusterrolebinding job_runner_binding --clusterrole=job_runner --serviceaccount=default:default
 ```

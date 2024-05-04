@@ -3,10 +3,11 @@ package dataFetch
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/castus/speedcube-events/db"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/castus/speedcube-events/db"
 )
 
 const (
@@ -20,8 +21,14 @@ type jsonResponse struct {
 func IncludeEvents(competitions db.Competitions) db.Competitions {
 	var newCompetitions db.Competitions
 	for _, competition := range competitions {
-		if competition.HasWCAPage() {
-			competition.Events = events(competition.WCAId)
+		if competition.Type == db.CompetitionType.WCA {
+			var id string
+			if competition.WCAId != "" {
+				id = competition.WCAId
+			} else {
+				id = competition.TypeSpecificId
+			}
+			competition.Events = events(id)
 			time.Sleep(time.Millisecond * 500)
 		}
 		newCompetitions = append(newCompetitions, competition)

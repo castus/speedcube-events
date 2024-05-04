@@ -2,11 +2,12 @@ package dataFetch
 
 import (
 	"fmt"
-	"github.com/castus/speedcube-events/logger"
 	"io"
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/castus/speedcube-events/logger"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/castus/speedcube-events/db"
@@ -56,10 +57,11 @@ func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
 
 			url, _ := s.Find(".ulr-title a").Attr("href")
 			competition.URL = url
-			if strings.Contains(url, WCAHost) {
-				elements := strings.Split(url, "/")
-				competition.WCAId = elements[len(elements)-1]
-				log.Info("Found WCA URL, extracting ID.", "WCAId", competition.WCAId, "URL", competition.URL)
+			competitionType, typeSpecificId := getTypeInformation(competition.URL, competition.Name)
+			competition.Type = competitionType
+			competition.TypeSpecificId = typeSpecificId
+			if competitionType != db.CompetitionType.Unknown {
+				log.Info("Checking competition type.", "Type", competition.Type, "TypeID", competition.TypeSpecificId)
 			}
 
 			logo, _ := s.Find(".ulr-image").Attr("style")
@@ -92,6 +94,23 @@ func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
 	})
 
 	return competitions
+}
+
+func getTypeInformation(url string, name string) (string, string) {
+	if strings.Contains(url, WCAHost) {
+		elements := strings.Split(url, "/")
+		return db.CompetitionType.WCA, elements[len(elements)-1]
+	}
+	if strings.Contains(url, Cube4FunHost) {
+		elements := strings.Split(url, "/")
+		return db.CompetitionType.Cube4Fun, elements[len(elements)-1]
+	}
+	if strings.Contains(url, RubiArtHost) && strings.Contains(name, "PPO") {
+		elements := strings.Split(url, "/")
+		return db.CompetitionType.PPO, elements[len(elements)-1]
+	}
+
+	return db.CompetitionType.Unknown, ""
 }
 
 func normalizeString(s string) string {

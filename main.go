@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
@@ -10,8 +13,7 @@ import (
 	"github.com/castus/speedcube-events/exporter"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
-	"os"
-	"strings"
+	"github.com/castus/speedcube-events/printer"
 )
 
 var log = logger.Default()
@@ -36,7 +38,7 @@ func main() {
 		log.Info("No scraped competitions, finishing")
 		return
 	}
-	//printer.PrettyPrint(scrappedCompetitions)
+	// printer.PrettyPrint(scrappedCompetitions)
 
 	c, err := db.GetClient()
 	if err != nil {
@@ -78,6 +80,8 @@ func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Comp
 	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions, dataFetch.WebFetcher{})
 	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions, dataFetch.WebFetcher{})
 	scrappedCompetitions = distance.IncludeTravelInfo(scrappedCompetitions, dbCompetitions)
+	printer.PrettyPrint(scrappedCompetitions)
+	os.Exit(1)
 	writes, err := db.AddItemsBatch(client, scrappedCompetitions)
 	if err != nil {
 		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
