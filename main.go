@@ -11,9 +11,9 @@ import (
 	"github.com/castus/speedcube-events/diff"
 	"github.com/castus/speedcube-events/distance"
 	"github.com/castus/speedcube-events/exporter"
+	"github.com/castus/speedcube-events/externalFetcher"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
-	"github.com/castus/speedcube-events/printer"
 )
 
 var log = logger.Default()
@@ -72,6 +72,14 @@ func main() {
 
 		messenger.Send(message)
 	}
+
+	externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)
+
+	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
+		externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)
+	} else {
+		log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
+	}
 }
 
 func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {
@@ -80,8 +88,8 @@ func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Comp
 	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions, dataFetch.WebFetcher{})
 	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions, dataFetch.WebFetcher{})
 	scrappedCompetitions = distance.IncludeTravelInfo(scrappedCompetitions, dbCompetitions)
-	printer.PrettyPrint(scrappedCompetitions)
-	os.Exit(1)
+	// printer.PrettyPrint(scrappedCompetitions)
+	// os.Exit(1)
 	writes, err := db.AddItemsBatch(client, scrappedCompetitions)
 	if err != nil {
 		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))

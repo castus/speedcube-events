@@ -43,21 +43,28 @@ func events(id string) []string {
 	res, err := http.Get(fmt.Sprintf("%s/%s.json", apiHost, id))
 	if err != nil {
 		log.Error("Couldn't fetch API page", err)
+
+		return []string{}
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		log.Error("Can't fetch Event from API", "Status code", res.StatusCode, "status", res.Status)
+
+		return []string{}
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Error("Couldn't get response body", err)
+
+		return []string{}
 	}
 
 	var data jsonResponse
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		log.Error("Couldn't unmarshal JSON", err)
+		return []string{}
 	}
 
 	log.Info("Found events for.", "WCAId", id, "Events", data.Events)
