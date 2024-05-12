@@ -4,15 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/logger"
-	"io"
-	"os"
 )
 
 var log = logger.Default()
@@ -67,7 +66,7 @@ func exportToFile(items db.Competitions, fileName string) {
 }
 
 func exportToStorage(fileName string) {
-	c, err := storageClient()
+	c, err := S3Client()
 	if err != nil {
 		log.Error("Couldn't get database client", err)
 		panic(err)
@@ -89,25 +88,4 @@ func exportToStorage(fileName string) {
 			log.Error("Couldn't save file to bucket.", "file", fileName, "bucketName", bucketName, "objectKey", fileName, "error", err)
 		}
 	}
-}
-
-func storageClient() (*s3.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("eu-central-1"),
-		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
-			Value: aws.Credentials{
-				AccessKeyID:     os.Getenv("AWS_S3_API_KEY"),
-				SecretAccessKey: os.Getenv("AWS_S3_API_SECRET"),
-				SessionToken:    "",
-				Source:          "Speedcube Events app",
-			},
-		}),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	c := s3.NewFromConfig(cfg)
-
-	return c, nil
 }

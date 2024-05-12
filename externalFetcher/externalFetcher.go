@@ -9,7 +9,7 @@ import (
 
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/logger"
-	"github.com/castus/speedcube-events/printer"
+
 	k8sBatchV1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	k8sMetaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,9 +35,6 @@ func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
 	stringifyConfig := strings.ReplaceAll(str, `\`, `\\`)
 	stringifyConfig = strings.ReplaceAll(stringifyConfig, `"`, `\"`)
 	stringifyConfig = strings.ReplaceAll(stringifyConfig, `'`, `\'`)
-	fmt.Println(stringifyConfig)
-	printer.PrettyPrint(allConfigs)
-	return
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -64,14 +61,9 @@ func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
 					Containers: []v1.Container{
 						{
 							Name:    "run-webscraper",
-							Image:   "c4stus/webscraper:latest",
+							Image:   "c4stus/speedcube-web-scraper:latest",
 							Command: strings.Split("python /app/main.py", " "),
-							Env: []v1.EnvVar{
-								{
-									Name:  "SCRAP_CONFIG",
-									Value: stringifyConfig,
-								},
-							},
+							Env:     envs(stringifyConfig),
 						},
 					},
 					RestartPolicy: v1.RestartPolicyNever,
@@ -86,4 +78,39 @@ func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
 		log.Error("Failed to create K8s job", err)
 		panic(err)
 	}
+}
+
+func envs(config string) []v1.EnvVar {
+	var envs = []v1.EnvVar{}
+	envs = append(envs, v1.EnvVar{
+		Name:  "SCRAP_CONFIG",
+		Value: config,
+	})
+
+	return append(envs, secrets()...)
+}
+
+func secrets() []v1.EnvVar {
+	var secrets = []v1.EnvVar{}
+	keys := []string{
+		"S3_WEB_DATA_BUCKET_NAME",
+		"AWS_S3_API_SECRET",
+		"AWS_S3_API_KEY",
+	}
+	name := "speedcube-events-secrets"
+	for _, key := range keys {
+		secrets = append(secrets, v1.EnvVar{
+			Name: key,
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: &v1.SecretKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: name,
+					},
+					Key: key,
+				},
+			},
+		})
+	}
+
+	return secrets
 }

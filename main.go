@@ -12,6 +12,7 @@ import (
 	"github.com/castus/speedcube-events/distance"
 	"github.com/castus/speedcube-events/exporter"
 	"github.com/castus/speedcube-events/externalFetcher"
+	"github.com/castus/speedcube-events/externalParser"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
 )
@@ -24,6 +25,11 @@ func main() {
 	if len(args) > 1 && strings.Contains(args[1], "saveWebpage") {
 		exporter.SaveWebpageAsFile("kalendarz-imprez.html")
 		log.Info("Webpage saved on disk")
+		return
+	}
+
+	if len(args) > 1 && strings.Contains(args[1], "parseExternal") {
+		externalParser.Run()
 		return
 	}
 
