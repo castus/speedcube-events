@@ -1,17 +1,15 @@
 package exporter
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/logger"
+	"github.com/castus/speedcube-events/s3"
 )
 
 var log = logger.Default()
@@ -66,26 +64,12 @@ func exportToFile(items db.Competitions, fileName string) {
 }
 
 func exportToStorage(fileName string) {
-	c, err := S3Client()
-	if err != nil {
-		log.Error("Couldn't get database client", err)
-		panic(err)
-	}
-
 	file, err := os.Open(fileName)
 	if err != nil {
 		log.Error("Couldn't open file to upload.", "file", fileName, "error", err)
 	} else {
 		defer file.Close()
-		log.Info("Saving to S3 bucket", "name", os.Getenv("S3_BUCKET_NAME"))
 		bucketName := os.Getenv("S3_BUCKET_NAME")
-		_, err = c.PutObject(context.TODO(), &s3.PutObjectInput{
-			Bucket: aws.String(bucketName),
-			Key:    aws.String(fileName),
-			Body:   file,
-		})
-		if err != nil {
-			log.Error("Couldn't save file to bucket.", "file", fileName, "bucketName", bucketName, "objectKey", fileName, "error", err)
-		}
+		s3.Save(bucketName, fileName, file)
 	}
 }

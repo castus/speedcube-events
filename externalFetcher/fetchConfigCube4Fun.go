@@ -10,8 +10,8 @@ func FetchConfigCube4Fun(competitions db.Competitions) []ExternalFetchConfig {
 	var cube4FunItems = []ExternalFetchConfig{}
 	for _, competition := range competitions {
 		if competition.Type == db.CompetitionType.Cube4Fun {
-			cube4FunItems = append(cube4FunItems, cube4FunConfig("info", competition))
-			cube4FunItems = append(cube4FunItems, cube4FunConfig("competitors", competition))
+			cube4FunItems = append(cube4FunItems, cube4FunConfig(db.Cube4FunPages.Info, competition))
+			cube4FunItems = append(cube4FunItems, cube4FunConfig(db.Cube4FunPages.Competitors, competition))
 		}
 	}
 

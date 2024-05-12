@@ -18,6 +18,14 @@ var CompetitionType = Types{
 	PPO:      "PPO",
 }
 
+var Cube4FunPages = struct {
+	Info        string
+	Competitors string
+}{
+	Info:        "info",
+	Competitors: "competitors",
+}
+
 type Competition struct {
 	Type                              string
 	TypeSpecificId                    string
