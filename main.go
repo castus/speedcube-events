@@ -79,7 +79,10 @@ func main() {
 		messenger.Send(message)
 	}
 
-	externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)
+	if len(args) > 1 && strings.Contains(args[1], "getK8sScrapConfig") {
+		fmt.Println(externalFetcher.GetK8sJobsConfig(fullDataCompetitions))
+		return
+	}
 
 	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
 		externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)

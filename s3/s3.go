@@ -60,6 +60,7 @@ func AllKeys(bucketName string) []string {
 
 func Contents(bucketName string, key string) string {
 	c, err := s3Client()
+	log.Info("Trying to get S3 object.", "bucketName", bucketName, "objectKey", key)
 	if err != nil {
 		log.Error("Couldn't get S3Client client", err)
 		panic(err)
@@ -72,12 +73,12 @@ func Contents(bucketName string, key string) string {
 	if err != nil {
 		log.Error("Couldn't get object from bucket.", "bucketName", bucketName, "objectKey", key, "error", err)
 	}
-	respBytes, err := io.ReadAll(out.Body)
+	s, err := io.ReadAll(out.Body)
 	if err != nil {
 		panic(err)
 	}
 
-	return string(respBytes)
+	return string(s)
 }
 
 func Save(bucketName string, key string, content io.Reader) {

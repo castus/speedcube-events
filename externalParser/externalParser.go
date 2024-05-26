@@ -2,8 +2,6 @@ package externalParser
 
 import (
 	"bytes"
-	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -16,29 +14,36 @@ import (
 var log = logger.Default()
 
 func Run() {
+	c, err := db.GetClient()
+	if err != nil {
+		log.Error("Couldn't get database client", err)
+		panic(err)
+	}
+
+	dbCompetitions, err := db.AllItems(c)
+	if err != nil {
+		log.Error("Couldn't fetch items from database", err)
+		panic(err)
+	}
+
 	log.Info("Running external parsing, trying to get S3 objects")
 	bucketName := os.Getenv("S3_WEB_DATA_BUCKET_NAME")
 	allKeys := s3.AllKeys(bucketName)
+	eventsMap := dataFetch.EventsMap()
 	for _, key := range allKeys {
 		items := strings.Split(key, "/")
 		externalType := items[0]
-		externalId := items[1]
+		id := items[1]
 		externalPageName := items[2]
-		log.Info("Parsing object", "key", key)
+		log.Info("Trying to parse object", "key", key)
 		if externalType == db.CompetitionType.Cube4Fun {
-			file, err := os.Open(fmt.Sprintf("exported/%s-%s", externalId, externalPageName))
-			if err != nil {
-				log.Error("Couldn't open file", err)
-				panic(err)
+			dbItem := dbCompetitions.FindByID(id)
+			if dbItem.HasPassed {
+				continue
 			}
-			defer file.Close()
 
-			data, err := io.ReadAll(file)
-			if err != nil {
-				log.Error("Unable to read file: ", err)
-			}
-			Cube4FunParse(bytes.NewReader(data), externalType, externalId, externalPageName, dataFetch.EventsMap())
-			// Cube4FunParse(s3.Contents(bucketName, key), externalType, externalId, externalPageName)
+			s3Content := s3.Contents(bucketName, key)
+			Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem, c)
 		}
 	}
 }

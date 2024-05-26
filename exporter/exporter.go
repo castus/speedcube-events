@@ -21,6 +21,7 @@ const (
 func Export(items db.Competitions) {
 	exportToFile(items, fileName)
 	exportToStorage(fileName)
+	cleanup(fileName)
 }
 
 func SaveWebpageAsFile(name string) {
@@ -71,5 +72,12 @@ func exportToStorage(fileName string) {
 		defer file.Close()
 		bucketName := os.Getenv("S3_BUCKET_NAME")
 		s3.Save(bucketName, fileName, file)
+	}
+}
+
+func cleanup(fileName string) {
+	err := os.Remove(fileName)
+	if err != nil {
+		log.Error("Couldn't cleanup database file.", "file", fileName, "error", err)
 	}
 }

@@ -24,18 +24,15 @@ type ExternalFetchConfig struct {
 	Id           string
 	URL          string
 	S3BucketPath string
+	DatabaseId   string
+}
+
+func GetK8sJobsConfig(competitions db.Competitions) string {
+	return stringifiedConfig(competitions)
 }
 
 func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
-	var allConfigs = []ExternalFetchConfig{}
-	c4fItems := FetchConfigCube4Fun(competitions)
-	allConfigs = append(allConfigs, c4fItems...)
-	j, _ := json.Marshal(allConfigs)
-	str := string(j)
-	stringifyConfig := strings.ReplaceAll(str, `\`, `\\`)
-	stringifyConfig = strings.ReplaceAll(stringifyConfig, `"`, `\"`)
-	stringifyConfig = strings.ReplaceAll(stringifyConfig, `'`, `\'`)
-
+	jobConfig := stringifiedConfig(competitions)
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -63,7 +60,7 @@ func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
 							Name:    "run-webscraper",
 							Image:   "c4stus/speedcube-web-scraper:latest",
 							Command: strings.Split("python /app/main.py", " "),
-							Env:     envs(stringifyConfig),
+							Env:     envs(jobConfig),
 						},
 					},
 					RestartPolicy: v1.RestartPolicyNever,
@@ -78,6 +75,19 @@ func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
 		log.Error("Failed to create K8s job", err)
 		panic(err)
 	}
+}
+
+func stringifiedConfig(competitions db.Competitions) string {
+	var allConfigs = []ExternalFetchConfig{}
+	c4fItems := FetchConfigCube4Fun(competitions)
+	allConfigs = append(allConfigs, c4fItems...)
+	j, _ := json.Marshal(allConfigs)
+	str := string(j)
+	stringifyConfig := strings.ReplaceAll(str, `\`, `\\`)
+	stringifyConfig = strings.ReplaceAll(stringifyConfig, `"`, `\"`)
+	stringifyConfig = strings.ReplaceAll(stringifyConfig, `'`, `\'`)
+
+	return stringifyConfig
 }
 
 func envs(config string) []v1.EnvVar {

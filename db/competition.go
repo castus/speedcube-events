@@ -19,11 +19,9 @@ var CompetitionType = Types{
 }
 
 var Cube4FunPages = struct {
-	Info        string
-	Competitors string
+	Info string
 }{
-	Info:        "info",
-	Competitors: "competitors",
+	Info: "info",
 }
 
 type Competition struct {
