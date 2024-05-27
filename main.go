@@ -2,16 +2,19 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/diff"
 	"github.com/castus/speedcube-events/distance"
 	"github.com/castus/speedcube-events/exporter"
+	"github.com/castus/speedcube-events/externalFetcher"
+	"github.com/castus/speedcube-events/externalParser"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
-	"os"
-	"strings"
 )
 
 var log = logger.Default()
@@ -22,6 +25,11 @@ func main() {
 	if len(args) > 1 && strings.Contains(args[1], "saveWebpage") {
 		exporter.SaveWebpageAsFile("kalendarz-imprez.html")
 		log.Info("Webpage saved on disk")
+		return
+	}
+
+	if len(args) > 1 && strings.Contains(args[1], "parseExternal") {
+		externalParser.Run()
 		return
 	}
 
@@ -36,7 +44,7 @@ func main() {
 		log.Info("No scraped competitions, finishing")
 		return
 	}
-	//printer.PrettyPrint(scrappedCompetitions)
+	// printer.PrettyPrint(scrappedCompetitions)
 
 	c, err := db.GetClient()
 	if err != nil {
@@ -70,6 +78,17 @@ func main() {
 
 		messenger.Send(message)
 	}
+
+	if len(args) > 1 && strings.Contains(args[1], "getK8sScrapConfig") {
+		fmt.Println(externalFetcher.GetK8sJobsConfig(fullDataCompetitions))
+		return
+	}
+
+	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
+		externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)
+	} else {
+		log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
+	}
 }
 
 func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {
@@ -78,6 +97,8 @@ func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Comp
 	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions, dataFetch.WebFetcher{})
 	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions, dataFetch.WebFetcher{})
 	scrappedCompetitions = distance.IncludeTravelInfo(scrappedCompetitions, dbCompetitions)
+	// printer.PrettyPrint(scrappedCompetitions)
+	// os.Exit(1)
 	writes, err := db.AddItemsBatch(client, scrappedCompetitions)
 	if err != nil {
 		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))

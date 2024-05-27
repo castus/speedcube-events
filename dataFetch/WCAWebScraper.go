@@ -2,23 +2,26 @@ package dataFetch
 
 import (
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/castus/speedcube-events/db"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/castus/speedcube-events/db"
 )
 
 const (
 	registrationsPath = "registrations"
 	WCAHost           = "worldcubeassociation.org"
+	Cube4FunHost      = "cube4fun.pl"
+	RubiArtHost       = "rubiart.pl"
 )
 
 func IncludeRegistrations(competitions db.Competitions, fetcher DataFetcher) db.Competitions {
 	var newCompetitions db.Competitions
 	for _, competition := range competitions {
-		if competition.HasWCAPage() {
+		if competition.Type == db.CompetitionType.WCA {
 			competition.Registered = registrations(competition.URL, fetcher)
 			time.Sleep(time.Millisecond * 500)
 		}
@@ -55,7 +58,7 @@ type GeneralInfo struct {
 func IncludeGeneralInfo(competitions db.Competitions, fetcher DataFetcher) db.Competitions {
 	var newCompetitions db.Competitions
 	for _, competition := range competitions {
-		if competition.HasWCAPage() {
+		if competition.Type == db.CompetitionType.WCA {
 			gi := generalInfo(competition.URL, fetcher)
 			competition.MainEvent = gi.MainEvent
 			competition.CompetitorLimit = gi.CompetitorLimit

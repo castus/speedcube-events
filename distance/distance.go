@@ -2,10 +2,11 @@ package distance
 
 import (
 	"fmt"
-	"github.com/castus/speedcube-events/db"
-	"github.com/castus/speedcube-events/logger"
 	"math"
 	"time"
+
+	"github.com/castus/speedcube-events/db"
+	"github.com/castus/speedcube-events/logger"
 )
 
 type TravelInfo struct {
@@ -27,9 +28,24 @@ func IncludeTravelInfo(competitions db.Competitions, databaseItems db.Competitio
 			newArray = append(newArray, item)
 			continue
 		}
+		if item.HasPassed {
+			log.Info("No need to fetch travel info, detected PASSED event", "eventID", item.Id)
+			newArray = append(newArray, item)
+			continue
+		}
 
 		dbItem := databaseItems.FindByID(item.Id)
-		if dbItem != nil && (dbItem.Distance != "" || dbItem.Duration != "") {
+		if dbItem == nil {
+			panic("Can't find event in the database")
+		}
+
+		if item.HasPassed {
+			log.Info("No need to fetch travel info, detected PASSED event", "eventID", item.Id)
+			newArray = append(newArray, item)
+			continue
+		}
+
+		if dbItem.Distance != "" || dbItem.Duration != "" {
 			log.Info("No need to fetch travel info, event has already have it", "eventID", item.Id)
 			item.Distance = dbItem.Distance
 			item.Duration = dbItem.Duration

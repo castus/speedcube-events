@@ -53,6 +53,10 @@ func PutItem(c *dynamodb.Client, competition Competition) (err error) {
 	return err
 }
 
+func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
+	return AddItemsBatch(c, []Competition{item})
+}
+
 func AddItemsBatch(c *dynamodb.Client, items []Competition) (int, error) {
 	var err error
 	var item map[string]types.AttributeValue
@@ -121,8 +125,8 @@ func DeleteItems(c *dynamodb.Client, items Competitions) error {
 	return nil
 }
 
-func AllItems(c *dynamodb.Client) ([]Competition, error) {
-	var competitions []Competition
+func AllItems(c *dynamodb.Client) (Competitions, error) {
+	var competitions Competitions
 	var err error
 	var response *dynamodb.ScanOutput
 	response, err = c.Scan(context.TODO(), &dynamodb.ScanInput{

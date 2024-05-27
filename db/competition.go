@@ -4,15 +4,37 @@ import (
 	"github.com/castus/speedcube-events/logger"
 )
 
+type Types struct {
+	Unknown  string
+	WCA      string
+	Cube4Fun string
+	PPO      string
+}
+
+var CompetitionType = Types{
+	Unknown:  "Unknown",
+	WCA:      "WCA",
+	Cube4Fun: "Cube4Fun",
+	PPO:      "PPO",
+}
+
+var Cube4FunPages = struct {
+	Info string
+}{
+	Info: "info",
+}
+
 type Competition struct {
-	WCAId                             string
+	Type                              string
+	TypeSpecificId                    string
+	WCAId                             string // Legacy, use Type for that
 	Id                                string
 	Header, Name, URL, Place, LogoURL string
 	ContactName, ContactURL           string
-	HasWCA                            bool
 	Date                              string
 	Distance                          string
 	Duration                          string
+	HasWCA                            bool     // Does the score will save in WCA
 	HasPassed                         bool     // Event moved to Past tab
 	Events                            []string // WCA API scrap
 	MainEvent                         string   // WCA GeneralInfo scrap
@@ -39,8 +61,4 @@ func (c Competition) IsEqualTo(competition Competition) bool {
 
 	log.Debug("Item changed", "from", c, "to", competition)
 	return false
-}
-
-func (c Competition) HasWCAPage() bool {
-	return c.WCAId != ""
 }
