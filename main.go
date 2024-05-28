@@ -86,6 +86,7 @@ func main() {
 
 	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
 		externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)
+		log.Info("Running k8s job.")
 	} else {
 		log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
 	}
