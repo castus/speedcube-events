@@ -84,8 +84,6 @@ func stringifiedConfig(competitions db.Competitions) string {
 	j, _ := json.Marshal(allConfigs)
 	str := string(j)
 	stringifyConfig := strings.ReplaceAll(str, `\`, `\\`)
-	stringifyConfig = strings.ReplaceAll(stringifyConfig, `"`, `\"`)
-	stringifyConfig = strings.ReplaceAll(stringifyConfig, `'`, `\'`)
 
 	return stringifyConfig
 }
