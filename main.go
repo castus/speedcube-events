@@ -29,6 +29,7 @@ func main() {
 	}
 
 	if len(args) > 1 && strings.Contains(args[1], "parseExternal") {
+		log.Info("Running external parsing...")
 		externalParser.Run()
 		return
 	}

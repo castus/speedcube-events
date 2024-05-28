@@ -26,7 +26,7 @@ func Run() {
 		panic(err)
 	}
 
-	log.Info("Running external parsing, trying to get S3 objects")
+	log.Info("Trying to get S3 objects")
 	bucketName := os.Getenv("S3_WEB_DATA_BUCKET_NAME")
 	allKeys := s3.AllKeys(bucketName)
 	eventsMap := dataFetch.EventsMap()
