@@ -36,6 +36,7 @@ func Run() {
 		id := items[1]
 		externalPageName := items[2]
 		log.Info("Trying to parse object", "key", key)
+
 		if externalType == db.CompetitionType.Cube4Fun {
 			dbItem := dbCompetitions.FindByID(id)
 			if dbItem.HasPassed {
