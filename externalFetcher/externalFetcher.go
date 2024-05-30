@@ -24,7 +24,7 @@ type ExternalFetchConfig struct {
 	Id           string
 	URL          string
 	S3BucketPath string
-	DatabaseId   string
+	PageType     string
 }
 
 func GetK8sJobsConfig(competitions db.Competitions) string {
@@ -80,7 +80,9 @@ func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
 func stringifiedConfig(competitions db.Competitions) string {
 	var allConfigs = []ExternalFetchConfig{}
 	c4fItems := FetchConfigCube4Fun(competitions)
+	ppoItems := FetchConfigPPO(competitions)
 	allConfigs = append(allConfigs, c4fItems...)
+	allConfigs = append(allConfigs, ppoItems...)
 	j, _ := json.Marshal(allConfigs)
 	str := string(j)
 	stringifyConfig := strings.ReplaceAll(str, `\`, `\\`)

@@ -18,7 +18,7 @@ func Cube4FunParse(body io.Reader, competitionType string, id string, pageName s
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
 	prepareEventsMap(eventsMap)
-	if pageKey == db.Cube4FunPages.Info {
+	if pageKey == db.PageTypes.Info {
 		parseInfo(body, dbItem, c)
 	}
 }
