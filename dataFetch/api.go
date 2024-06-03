@@ -27,37 +27,59 @@ type EventMap struct {
 	Name string `json:"name"`
 }
 
-func EventsMap() []EventMap {
+type EventsMap []EventMap
+
+func (e EventsMap) NameById(id string) (string, bool) {
+	for _, event := range e {
+		if event.Id == id {
+			return event.Name, true
+		}
+	}
+
+	return "", false
+}
+
+func (e EventsMap) IdByName(name string) (string, bool) {
+	for _, event := range e {
+		if event.Name == name {
+			return event.Id, true
+		}
+	}
+
+	return "", false
+}
+
+func InitializeEventsMap() EventsMap {
 	log.Info("Trying to fetch events map.")
 
 	res, err := http.Get(fmt.Sprintf("%s/events.json", apiHost))
 	if err != nil {
 		log.Error("Couldn't fetch API page", err)
 
-		return []EventMap{}
+		return EventsMap{}
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		log.Error("Can't fetch Event from API", "Status code", res.StatusCode, "status", res.Status)
 
-		return []EventMap{}
+		return EventsMap{}
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Error("Couldn't get response body", err)
 
-		return []EventMap{}
+		return EventsMap{}
 	}
 
 	var data EventsMapResponse
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		log.Error("Couldn't unmarshal JSON", err)
-		return []EventMap{}
+		return EventsMap{}
 	}
 
-	log.Info("Found events map for.")
+	log.Info("Found events map")
 
 	return data.Items
 }
