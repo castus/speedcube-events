@@ -22,3 +22,4 @@
 go.work
 .env
 .DS_Store
+k8s_scrape_job.yml

@@ -32,8 +32,15 @@ func parseInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, events
 		if text == "competitor limit" || text == "limit zawodników" {
 			limit := trim(row.Next().Text())
 			limits := strings.Split(limit, "/")
-			registered := limits[0]
-			all := limits[1]
+			var registered string
+			var all string
+			if len(limits) < 2 {
+				registered = "0"
+				all = limits[0]
+			} else {
+				registered = limits[0]
+				all = limits[1]
+			}
 
 			i, err := strconv.Atoi(all)
 			if err != nil {
