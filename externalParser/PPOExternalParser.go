@@ -12,7 +12,7 @@ import (
 	"github.com/castus/speedcube-events/db"
 )
 
-func PPOParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition, c *dynamodb.Client) {
+func PPOParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem db.Competition, c *dynamodb.Client) {
 	log.Info("Found PPO event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
@@ -23,7 +23,7 @@ func PPOParse(body io.Reader, competitionType string, id string, pageName string
 	}
 }
 
-func parsePPOInfo(body io.Reader, dbItem *db.Competition, c *dynamodb.Client, eventsMap dataFetch.EventsMap) {
+func parsePPOInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, eventsMap dataFetch.EventsMap) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -64,7 +64,7 @@ func parsePPOInfo(body io.Reader, dbItem *db.Competition, c *dynamodb.Client, ev
 		}
 	})
 
-	_, err = db.AddItemBatch(c, *dbItem)
+	_, err = db.AddItemBatch(c, dbItem)
 	if err != nil {
 		log.Error("Couldn't save item to database after update PPO", "error", err)
 		panic(err)
@@ -72,7 +72,7 @@ func parsePPOInfo(body io.Reader, dbItem *db.Competition, c *dynamodb.Client, ev
 	log.Info("Successfully update PPO event info page", "id", dbItem.Id)
 }
 
-func parsePPOCompetitors(body io.Reader, dbItem *db.Competition, c *dynamodb.Client) {
+func parsePPOCompetitors(body io.Reader, dbItem db.Competition, c *dynamodb.Client) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -84,7 +84,7 @@ func parsePPOCompetitors(body io.Reader, dbItem *db.Competition, c *dynamodb.Cli
 		log.Info("Found Registered competitors for PPO", "registered", registered)
 	})
 
-	_, err = db.AddItemBatch(c, *dbItem)
+	_, err = db.AddItemBatch(c, dbItem)
 	if err != nil {
 		log.Error("Couldn't save item to database after update PPO", "error", err)
 		panic(err)

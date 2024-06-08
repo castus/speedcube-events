@@ -11,7 +11,7 @@ import (
 	"github.com/castus/speedcube-events/db"
 )
 
-func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition, c *dynamodb.Client) {
+func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem db.Competition, c *dynamodb.Client) {
 	log.Info("Found Cube4Fun event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
@@ -20,7 +20,7 @@ func Cube4FunParse(body io.Reader, competitionType string, id string, pageName s
 	}
 }
 
-func parseInfo(body io.Reader, dbItem *db.Competition, c *dynamodb.Client, eventsMap dataFetch.EventsMap) {
+func parseInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, eventsMap dataFetch.EventsMap) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -65,7 +65,7 @@ func parseInfo(body io.Reader, dbItem *db.Competition, c *dynamodb.Client, event
 		}
 	})
 
-	_, err = db.AddItemBatch(c, *dbItem)
+	_, err = db.AddItemBatch(c, dbItem)
 	if err != nil {
 		log.Error("Couldn't save item to database after update Cube4Fun", "error", err)
 		panic(err)

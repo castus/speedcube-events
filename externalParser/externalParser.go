@@ -20,12 +20,6 @@ func Run() {
 		panic(err)
 	}
 
-	dbCompetitions, err := db.AllItems(c)
-	if err != nil {
-		log.Error("Couldn't fetch items from database", err)
-		panic(err)
-	}
-
 	log.Info("Trying to get S3 objects for external parsing")
 	bucketName := os.Getenv("S3_WEB_DATA_BUCKET_NAME")
 	allKeys := s3.AllKeys(bucketName)
@@ -36,7 +30,11 @@ func Run() {
 		id := items[1]
 		externalPageName := items[2]
 		log.Info("Trying to parse object", "key", key)
-		dbItem := dbCompetitions.FindByID(id)
+		dbItem, err := db.GetItemByID(c, id)
+		if err != nil {
+			log.Error("Couldn't get competition from database", err)
+			panic(err)
+		}
 		if dbItem.HasPassed {
 			continue
 		}

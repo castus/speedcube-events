@@ -53,6 +53,29 @@ func PutItem(c *dynamodb.Client, competition Competition) (err error) {
 	return err
 }
 
+func GetItemByID(c *dynamodb.Client, key string) (competition Competition, err error) {
+	var comp Competition
+
+	p := dynamodb.NewQueryPaginator(c, &dynamodb.QueryInput{
+		TableName:              aws.String(tableName()),
+		Limit:                  aws.Int32(1),
+		KeyConditionExpression: aws.String("Id = :hashKey"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":hashKey": &types.AttributeValueMemberS{Value: key},
+		},
+	})
+	out, err := p.NextPage(context.TODO())
+	if err != nil {
+		log.Error("Could fetch item", "error", err)
+	} else {
+		err = attributevalue.UnmarshalMap(out.Items[0], &comp)
+		if err != nil {
+			log.Error("Couldn't unmarshal query response. Here's why:", "error", err)
+		}
+	}
+	return comp, err
+}
+
 func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
 	return AddItemsBatch(c, []Competition{item})
 }
@@ -128,8 +151,7 @@ func DeleteItems(c *dynamodb.Client, items Competitions) error {
 func AllItems(c *dynamodb.Client) (Competitions, error) {
 	var competitions Competitions
 	var err error
-	var response *dynamodb.ScanOutput
-	response, err = c.Scan(context.TODO(), &dynamodb.ScanInput{
+	response, err := c.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName: aws.String(tableName()),
 	})
 	if err != nil {
