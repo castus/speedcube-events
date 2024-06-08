@@ -39,6 +39,7 @@ func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
 		return competitions
 	}
 
+	log.Info("Parsing kalendarz imprez...")
 	doc.Find("#competitions-following .row").Each(func(i int, row *goquery.Selection) {
 		header := row.Prev().Text()
 		header = strings.TrimSpace(header)
@@ -61,7 +62,9 @@ func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
 			competition.Type = competitionType
 			competition.TypeSpecificId = typeSpecificId
 			if competitionType != db.CompetitionType.Unknown {
-				log.Info("Checking competition type.", "Type", competition.Type, "TypeID", competition.TypeSpecificId)
+				log.Info("Found known competition type.", "Type", competition.Type, "TypeID", competition.TypeSpecificId)
+			} else {
+				log.Info("Found unknown competition type.", "Id", competition.Id)
 			}
 
 			logo, _ := s.Find(".ulr-image").Attr("style")

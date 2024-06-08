@@ -20,31 +20,30 @@ func Run() {
 		panic(err)
 	}
 
-	dbCompetitions, err := db.AllItems(c)
-	if err != nil {
-		log.Error("Couldn't fetch items from database", err)
-		panic(err)
-	}
-
-	log.Info("Trying to get S3 objects")
+	log.Info("Trying to get S3 objects for external parsing")
 	bucketName := os.Getenv("S3_WEB_DATA_BUCKET_NAME")
 	allKeys := s3.AllKeys(bucketName)
-	eventsMap := dataFetch.EventsMap()
+	eventsMap := dataFetch.InitializeEventsMap()
 	for _, key := range allKeys {
 		items := strings.Split(key, "/")
 		externalType := items[0]
 		id := items[1]
 		externalPageName := items[2]
 		log.Info("Trying to parse object", "key", key)
+		dbItem, err := db.GetItemByID(c, id)
+		if err != nil {
+			log.Error("Couldn't get competition from database", err)
+			panic(err)
+		}
+		if dbItem.HasPassed {
+			continue
+		}
 
+		s3Content := s3.Contents(bucketName, key)
 		if externalType == db.CompetitionType.Cube4Fun {
-			dbItem := dbCompetitions.FindByID(id)
-			if dbItem.HasPassed {
-				continue
-			}
-
-			s3Content := s3.Contents(bucketName, key)
 			Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem, c)
+		} else if externalType == db.CompetitionType.PPO {
+			PPOParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem, c)
 		}
 	}
 }

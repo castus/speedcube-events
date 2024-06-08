@@ -40,13 +40,6 @@ func main() {
 		fetcher = dataFetch.FileFetcher{}
 	}
 
-	scrappedCompetitions := dataFetch.ScrapCompetitions(fetcher)
-	if len(scrappedCompetitions) == 0 {
-		log.Info("No scraped competitions, finishing")
-		return
-	}
-	// printer.PrettyPrint(scrappedCompetitions)
-
 	c, err := db.GetClient()
 	if err != nil {
 		log.Error("Couldn't get database client", err)
@@ -58,11 +51,17 @@ func main() {
 		log.Error("Couldn't fetch items from database", err)
 		panic(err)
 	}
-
 	if len(args) > 1 && strings.Contains(args[1], "exportDatabase") {
 		exporter.Export(dbCompetitions)
 		return
 	}
+
+	scrappedCompetitions := dataFetch.ScrapCompetitions(fetcher)
+	if len(scrappedCompetitions) == 0 {
+		log.Info("No scraped competitions, finishing")
+		return
+	}
+	// printer.PrettyPrint(scrappedCompetitions)
 
 	diffIDs := diff.Diff(scrappedCompetitions, dbCompetitions)
 	displayLogMessage(diffIDs)

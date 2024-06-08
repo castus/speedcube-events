@@ -11,25 +11,16 @@ import (
 	"github.com/castus/speedcube-events/db"
 )
 
-var eventNames = make(map[string]string)
-
-func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap []dataFetch.EventMap, dbItem *db.Competition, c *dynamodb.Client) {
+func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem db.Competition, c *dynamodb.Client) {
 	log.Info("Found Cube4Fun event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
-	prepareEventsMap(eventsMap)
 	if pageKey == db.PageTypes.Info {
-		parseInfo(body, dbItem, c)
+		parseInfo(body, dbItem, c, eventsMap)
 	}
 }
 
-func prepareEventsMap(eventsMap []dataFetch.EventMap) {
-	for _, event := range eventsMap {
-		eventNames[event.Name] = event.Id
-	}
-}
-
-func parseInfo(body io.Reader, dbItem *db.Competition, c *dynamodb.Client) {
+func parseInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, eventsMap dataFetch.EventsMap) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -65,13 +56,16 @@ func parseInfo(body io.Reader, dbItem *db.Competition, c *dynamodb.Client) {
 			events := row.Next()
 			events.Find("title").Each(func(i int, row *goquery.Selection) {
 				ev := trim(row.Text())
-				eventsArr = append(eventsArr, eventNames[ev])
+				eventId, exists := eventsMap.IdByName(ev)
+				if exists {
+					eventsArr = append(eventsArr, eventId)
+				}
 			})
 			dbItem.Events = eventsArr
 		}
 	})
 
-	_, err = db.AddItemBatch(c, *dbItem)
+	_, err = db.AddItemBatch(c, dbItem)
 	if err != nil {
 		log.Error("Couldn't save item to database after update Cube4Fun", "error", err)
 		panic(err)
