@@ -15,4 +15,3 @@ RUN apt-get update -y && apt-get upgrade -y && apt-get install -yq \
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN update-ca-certificates
 COPY --from=builder /data/speedcube-events ./
-CMD ["./speedcubing-calendar"]

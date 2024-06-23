@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "main.go",
+      "name": "main",
       "type": "go",
       "request": "launch",
       "mode": "auto",
@@ -14,31 +14,40 @@
       "args": [""]
     },
     {
-      "name": "exportDatabase",
+      "name": "scrape",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "envFile": "${workspaceFolder}/.env",
-      "args": ["exportDatabase"]
+      "args": ["scrape"]
     },
     {
-      "name": "parseExternal",
+      "name": "export",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "envFile": "${workspaceFolder}/.env",
-      "args": ["parseExternal"]
+      "args": ["export"]
     },
     {
-      "name": "getK8sScrapConfig",
+      "name": "parse",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "envFile": "${workspaceFolder}/.env",
-      "args": ["getK8sScrapConfig"]
+      "args": ["parse"]
+    },
+    {
+      "name": "printK8SConfig",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/main.go",
+      "envFile": "${workspaceFolder}/.env",
+      "args": ["scrape", "-k"]
     }
   ]
 }
