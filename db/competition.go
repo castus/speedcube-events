@@ -4,6 +4,8 @@ import (
 	"github.com/castus/speedcube-events/logger"
 )
 
+var log = logger.Default()
+
 type Types struct {
 	Unknown  string
 	WCA      string
@@ -18,33 +20,28 @@ var CompetitionType = Types{
 	PPO:      "PPO",
 }
 
-var PageTypes = struct {
-	Info        string
-	Competitors string
-}{
-	Info:        "info",
-	Competitors: "competitors",
-}
-
 type Competition struct {
-	Type                              string
-	TypeSpecificId                    string
-	WCAId                             string // Legacy, use Type for that
-	Id                                string
-	Header, Name, URL, Place, LogoURL string
-	ContactName, ContactURL           string
-	Date                              string
-	Distance                          string
-	Duration                          string
-	HasWCA                            bool     // Does the score will save in WCA
-	HasPassed                         bool     // Event moved to Past tab
-	Events                            []string // WCA API scrap
-	MainEvent                         string   // WCA GeneralInfo scrap
-	CompetitorLimit                   int      // WCA GeneralInfo scrap
-	Registered                        int      // WCA Registrations scrap
+	Id              string
+	Header          string
+	Name            string
+	URL             string
+	Place           string
+	LogoURL         string
+	ContactName     string
+	ContactURL      string
+	HasWCA          bool // Will the score save in WCA
+	HasPassed       bool // Event moved to Past tab
+	Date            string
+	Type            string
+	TypeSpecificId  string
+	WCAId           string // Legacy, use Type for that
+	Distance        string
+	Duration        string
+	Events          []string // WCA API scrap
+	MainEvent       string   // WCA GeneralInfo scrap
+	CompetitorLimit int      // WCA GeneralInfo scrap
+	Registered      int      // WCA Registrations scrap
 }
-
-var log = logger.Default()
 
 func (c Competition) IsEqualTo(competition Competition) bool {
 	if c.Id == competition.Id &&
@@ -63,4 +60,19 @@ func (c Competition) IsEqualTo(competition Competition) bool {
 
 	log.Debug("Item changed", "from", c, "to", competition)
 	return false
+}
+
+func (c Competition) ExtractWCAId() string {
+	if c.Type != CompetitionType.WCA {
+		panic("This is not a WCA Type, please use WCA to get WCA ids")
+	}
+
+	var id string
+	if c.WCAId != "" {
+		id = c.WCAId
+	} else {
+		id = c.TypeSpecificId
+	}
+
+	return id
 }

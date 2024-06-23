@@ -24,3 +24,5 @@ go.work
 .DS_Store
 k8s_scrape_job.yml
 kalendarz-imprez.html
+.idea
+data.json

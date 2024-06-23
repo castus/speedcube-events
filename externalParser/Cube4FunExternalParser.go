@@ -6,21 +6,23 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
+	"github.com/castus/speedcube-events/externalFetcher"
 )
 
-func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem db.Competition, c *dynamodb.Client) {
+func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition) *db.Competition {
 	log.Info("Found Cube4Fun event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
-	if pageKey == db.PageTypes.Info {
-		parseInfo(body, dbItem, c, eventsMap)
+	if pageKey == externalFetcher.PageTypes.Info {
+		parseInfo(body, dbItem, eventsMap)
 	}
+
+	return dbItem
 }
 
-func parseInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, eventsMap dataFetch.EventsMap) {
+func parseInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.EventsMap) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -72,12 +74,7 @@ func parseInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, events
 		}
 	})
 
-	_, err = db.AddItemBatch(c, dbItem)
-	if err != nil {
-		log.Error("Couldn't save item to database after update Cube4Fun", "error", err)
-		panic(err)
-	}
-	log.Info("Successfully update Cube4Fun event", "id", dbItem.Id)
+	log.Info("Successfully update Cube4Fun event, ready to export")
 }
 
 func trim(text string) string {
