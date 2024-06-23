@@ -6,8 +6,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/castus/speedcube-events/db"
 )
 
 const (
@@ -84,26 +82,36 @@ func InitializeEventsMap() EventsMap {
 	return data.Items
 }
 
-func IncludeEvents(competitions db.Competitions) db.Competitions {
-	var newCompetitions db.Competitions
-	for _, competition := range competitions {
-		if competition.Type == db.CompetitionType.WCA {
-			var id string
-			if competition.WCAId != "" {
-				id = competition.WCAId
-			} else {
-				id = competition.TypeSpecificId
-			}
-			competition.Events = events(id)
-			time.Sleep(time.Millisecond * 500)
-		}
-		newCompetitions = append(newCompetitions, competition)
+func GetEvents(ids []string) map[string][]string {
+	var events = make(map[string][]string)
+	for _, identifier := range ids {
+		events[identifier] = fetchEvents(identifier)
+		time.Sleep(time.Millisecond * 500)
 	}
 
-	return newCompetitions
+	return events
 }
 
-func events(id string) []string {
+// func IncludeEvents(competitions db.Competitions) db.Competitions {
+// 	var newCompetitions db.Competitions
+// 	for _, competition := range competitions {
+// 		if competition.Type == db.CompetitionType.WCA {
+// 			var id string
+// 			if competition.WCAId != "" {
+// 				id = competition.WCAId
+// 			} else {
+// 				id = competition.TypeSpecificId
+// 			}
+// 			competition.Events = fetchEvents(id)
+// 			time.Sleep(time.Millisecond * 500)
+// 		}
+// 		newCompetitions = append(newCompetitions, competition)
+// 	}
+
+// 	return newCompetitions
+// }
+
+func fetchEvents(id string) []string {
 	log.Info("Trying to fetch events.", "WCAId", id)
 
 	res, err := http.Get(fmt.Sprintf("%s/competitions/%s.json", apiHost, id))

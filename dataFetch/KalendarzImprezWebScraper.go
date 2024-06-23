@@ -24,8 +24,8 @@ type DataFetcher interface {
 	Fetch(URL string) (r io.Reader, ok bool)
 }
 
-func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
-	var competitions db.Competitions
+func ScrapCompetitions(fetcher DataFetcher) []db.Competition {
+	var competitions []db.Competition
 
 	URL := fmt.Sprintf("%s/%s", Host, EventsPath)
 	r, ok := fetcher.Fetch(URL)

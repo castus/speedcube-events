@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,75 +13,107 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func tableName() string {
-	return os.Getenv("TABLE_NAME")
-}
+type Competitions []Competition
 
+func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
+	return 10, nil
+}
+func AllItems(c *dynamodb.Client) (Competitions, error) {
+	return Competitions{}, nil
+}
 func GetClient() (*dynamodb.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("eu-central-1"),
-		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
-			Value: aws.Credentials{
-				AccessKeyID:     os.Getenv("AWS_API_KEY"),
-				SecretAccessKey: os.Getenv("AWS_API_SECRET"),
-				SessionToken:    "",
-				Source:          "Speedcube Events app",
-			},
-		}),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	c := dynamodb.NewFromConfig(cfg)
-
-	return c, nil
+	return nil, errors.New("Error")
+}
+func GetItemByID(c *dynamodb.Client, key string) (competition Competition, err error) {
+	return Competition{}, nil
 }
 
-func PutItem(c *dynamodb.Client, competition Competition) (err error) {
-	item, err := attributevalue.MarshalMap(competition)
+type Database struct {
+	Items     map[string]Competition
+	client    *dynamodb.Client
+	tableName string
+}
+
+func (d *Database) Initialize() {
+	d.tableName = os.Getenv("TABLE_NAME")
+	c, err := d.getClient()
 	if err != nil {
+		log.Error("Couldn't get database client", err)
+		panic(err)
+	}
+	d.client = c
+	d.Items = make(map[string]Competition)
+
+	competitions, err := d.fetchAllItems()
+	if err != nil {
+		log.Error("Couldn't fetch items from database", err)
 		panic(err)
 	}
 
-	_, err = c.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: aws.String(tableName()),
-		Item:      item,
-	})
-	if err != nil {
-		log.Error("Couldn't add item to table. Here's why", err)
+	for _, item := range competitions {
+		d.Items[item.Id] = item
 	}
-	return err
 }
 
-func GetItemByID(c *dynamodb.Client, key string) (competition Competition, err error) {
-	var comp Competition
+func (d *Database) InitializeWith(competitions []Competition) {
+	d.Items = make(map[string]Competition)
+	for _, item := range competitions {
+		d.Items[item.Id] = item
+	}
+}
 
-	p := dynamodb.NewQueryPaginator(c, &dynamodb.QueryInput{
-		TableName:              aws.String(tableName()),
-		Limit:                  aws.Int32(1),
-		KeyConditionExpression: aws.String("Id = :hashKey"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":hashKey": &types.AttributeValueMemberS{Value: key},
-		},
-	})
-	out, err := p.NextPage(context.TODO())
-	if err != nil {
-		log.Error("Could fetch item", "error", err)
-	} else {
-		err = attributevalue.UnmarshalMap(out.Items[0], &comp)
-		if err != nil {
-			log.Error("Couldn't unmarshal query response. Here's why:", "error", err)
+func (d *Database) Add(id string, item Competition) {
+	_, ok := d.Items[id]
+	if !ok {
+		msg := "You try to add item that's already in the database"
+		log.Error(msg)
+		panic(msg)
+	}
+
+	d.Items[id] = item
+}
+
+func (d *Database) Get(id string) *Competition {
+	item, ok := d.Items[id]
+	if !ok {
+		return nil
+	}
+
+	return &item
+}
+
+func (d *Database) GetAll() []*Competition {
+	var items = []*Competition{}
+	for _, v := range d.Items {
+		items = append(items, &v)
+	}
+
+	return items
+}
+
+func (d *Database) FilterWCAIds() []string {
+	var ids []string
+	for _, competition := range d.Items {
+		if competition.Type == CompetitionType.WCA {
+			var id string
+			if competition.WCAId != "" {
+				id = competition.WCAId
+			} else {
+				id = competition.TypeSpecificId
+			}
+			ids = append(ids, id)
 		}
 	}
-	return comp, err
+
+	return ids
 }
 
-func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
-	return AddItemsBatch(c, []Competition{item})
-}
+func (d *Database) StoreInDynamoDB() {
+	var items = []Competition{}
+	for _, v := range d.Items {
+		items = append(items, v)
+	}
 
-func AddItemsBatch(c *dynamodb.Client, items []Competition) (int, error) {
 	var err error
 	var item map[string]types.AttributeValue
 	maxItems := 100
@@ -104,10 +137,10 @@ func AddItemsBatch(c *dynamodb.Client, items []Competition) (int, error) {
 				)
 			}
 		}
-		_, err = c.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
-			RequestItems: map[string][]types.WriteRequest{tableName(): writeReqs}})
+		_, err = d.client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{d.tableName: writeReqs}})
 		if err != nil {
-			log.Error("Couldn't add a batch of items to table", tableName(), "Here's why", err)
+			log.Error("Couldn't add a batch of items to table", d.tableName, "Here's why", err)
 		} else {
 			written += len(writeReqs)
 		}
@@ -115,44 +148,39 @@ func AddItemsBatch(c *dynamodb.Client, items []Competition) (int, error) {
 		end += batchSize
 	}
 
-	return written, err
-}
-
-func DeleteItem(c *dynamodb.Client, ID string, name string) error {
-	id, err := attributevalue.Marshal(ID)
 	if err != nil {
+		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", written, "allItems", len(items))
 		panic(err)
 	}
-	nameValue, err := attributevalue.Marshal(name)
-	if err != nil {
-		panic(err)
-	}
-	_, err = c.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
-		TableName: aws.String(tableName()),
-		Key:       map[string]types.AttributeValue{"Id": id, "Name": nameValue},
-	})
-	if err != nil {
-		log.Error("Couldn't delete item from the table.", ID, err)
-	}
-	return err
+	log.Info("Saved batch of items to database", "savedItems", written, "allItems", len(items))
 }
 
-func DeleteItems(c *dynamodb.Client, items Competitions) error {
-	for _, item := range items {
-		err := DeleteItem(c, item.Id, item.Name)
-		if err != nil {
-			return err
-		}
+func (d *Database) getClient() (*dynamodb.Client, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("eu-central-1"),
+		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
+			Value: aws.Credentials{
+				AccessKeyID:     os.Getenv("AWS_API_KEY"),
+				SecretAccessKey: os.Getenv("AWS_API_SECRET"),
+				SessionToken:    "",
+				Source:          "Speedcube Events app",
+			},
+		}),
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	c := dynamodb.NewFromConfig(cfg)
+
+	return c, nil
 }
 
-func AllItems(c *dynamodb.Client) (Competitions, error) {
-	var competitions Competitions
+func (d *Database) fetchAllItems() ([]Competition, error) {
+	var competitions []Competition
 	var err error
-	response, err := c.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName: aws.String(tableName()),
+	response, err := d.client.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName: aws.String(d.tableName),
 	})
 	if err != nil {
 		log.Error("Could fetch all items", "error", err)

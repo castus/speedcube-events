@@ -2,9 +2,10 @@ package messenger
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/diff"
-	"strings"
 )
 
 func PrepareHeader() string {
@@ -37,9 +38,9 @@ func PrepareMessageForAdded(IDs diff.Differences, competitions db.Competitions) 
 func PrepareMessageForRemoved(IDs diff.Differences, competitions db.Competitions) string {
 	var message []string
 
-	if IDs.HasRemoved() {
+	if IDs.HasPassed() {
 		message = append(message, sectionHeader("Imprezy minione"))
-		for _, item := range IDs.Removed {
+		for _, item := range IDs.Passed {
 			message = append(message, FormattedItemAsHTML(*competitions.FindByID(item)))
 		}
 	}
