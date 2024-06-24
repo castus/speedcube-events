@@ -26,7 +26,7 @@ var Cmd = &cobra.Command{
 	Short: "Scrape single source of truth, parse it and CRUD to DynamoDB",
 	Run: func(cmd *cobra.Command, args []string) {
 		database := db.Database{}
-		database.Initialize()
+		database.InitializeWith([]db.Competition{})
 		var fetcher dataFetch.DataFetcher = dataFetch.WebFetcher{}
 
 		if useMock {
@@ -46,7 +46,16 @@ var Cmd = &cobra.Command{
 		diffIDs := diff.Diff(&localItemsDatabase, &database)
 		diffIDs.PrintDifferencesInfo()
 
-		fmt.Println(dataFetch.GetEvents(localItemsDatabase.FilterWCAIds()))
+		onlyWCAEvents := localItemsDatabase.FilterWCAEvents()
+		wcaAPIData := dataFetch.GetWCAApiData(makeIdPairs(onlyWCAEvents))
+		for _, event := range onlyWCAEvents {
+			event.Events = wcaAPIData[event.Id].Events
+			event.MainEvent = wcaAPIData[event.Id].MainEvent
+			event.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
+			event.Registered = wcaAPIData[event.Id].Registered
+		}
+
+		fmt.Println(localItemsDatabase.GetAll())
 
 		// if diffIDs.IsEmpty() {
 		// 	log.Info("No changes in the events, skipping sending email.")
@@ -72,6 +81,18 @@ var Cmd = &cobra.Command{
 		// 	log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
 		// }
 	},
+}
+
+func makeIdPairs(competitions db.CompetitionsCollection) []dataFetch.IdPair {
+	var pairs []dataFetch.IdPair
+	for _, competition := range competitions {
+		pairs = append(pairs, dataFetch.IdPair{
+			DatabaseId: competition.Id,
+			OtherId:    competition.ExtractWCAId(),
+		})
+	}
+
+	return pairs
 }
 
 // func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {

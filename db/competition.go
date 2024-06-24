@@ -4,6 +4,8 @@ import (
 	"github.com/castus/speedcube-events/logger"
 )
 
+var log = logger.Default()
+
 type Types struct {
 	Unknown  string
 	WCA      string
@@ -44,8 +46,6 @@ type Competition struct {
 	Registered                        int      // WCA Registrations scrap
 }
 
-var log = logger.Default()
-
 func (c Competition) IsEqualTo(competition Competition) bool {
 	if c.Id == competition.Id &&
 		c.Header == competition.Header &&
@@ -64,3 +64,20 @@ func (c Competition) IsEqualTo(competition Competition) bool {
 	log.Debug("Item changed", "from", c, "to", competition)
 	return false
 }
+
+func (c Competition) ExtractWCAId() string {
+	if c.Type != CompetitionType.WCA {
+		panic("This is not a WCA Type, please use WCA to get WCA ids")
+	}
+
+	var id string
+	if c.WCAId != "" {
+		id = c.WCAId
+	} else {
+		id = c.TypeSpecificId
+	}
+
+	return id
+}
+
+type CompetitionsCollection []*Competition

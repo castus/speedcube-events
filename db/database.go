@@ -82,8 +82,8 @@ func (d *Database) Get(id string) *Competition {
 	return &item
 }
 
-func (d *Database) GetAll() []*Competition {
-	var items = []*Competition{}
+func (d *Database) GetAll() CompetitionsCollection {
+	var items = CompetitionsCollection{}
 	for _, v := range d.Items {
 		items = append(items, &v)
 	}
@@ -91,21 +91,15 @@ func (d *Database) GetAll() []*Competition {
 	return items
 }
 
-func (d *Database) FilterWCAIds() []string {
-	var ids []string
+func (d *Database) FilterWCAEvents() CompetitionsCollection {
+	var items = CompetitionsCollection{}
 	for _, competition := range d.Items {
 		if competition.Type == CompetitionType.WCA {
-			var id string
-			if competition.WCAId != "" {
-				id = competition.WCAId
-			} else {
-				id = competition.TypeSpecificId
-			}
-			ids = append(ids, id)
+			items = append(items, &competition)
 		}
 	}
 
-	return ids
+	return items
 }
 
 func (d *Database) StoreInDynamoDB() {
