@@ -1,7 +1,8 @@
 package scraper
 
 import (
-	"fmt"
+	"github.com/castus/speedcube-events/distance"
+	"github.com/castus/speedcube-events/printer"
 
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
@@ -23,10 +24,10 @@ func Setup() *cobra.Command {
 
 var Cmd = &cobra.Command{
 	Use:   "scrape",
-	Short: "Scrape single source of truth, parse it and CRUD to DynamoDB",
+	Short: "Scrape single source of truth, parse it and export to DynamoDB",
 	Run: func(cmd *cobra.Command, args []string) {
 		database := db.Database{}
-		database.InitializeWith([]db.Competition{})
+		database.Initialize()
 		var fetcher dataFetch.DataFetcher = dataFetch.WebFetcher{}
 
 		if useMock {
@@ -35,27 +36,41 @@ var Cmd = &cobra.Command{
 
 		scrapedCompetitions := dataFetch.ScrapCompetitions(fetcher)
 		if len(scrapedCompetitions) == 0 {
-			log.Info("No scraped competitions, finishing")
+			log.Info("No scraped competitions, finishing.")
 			return
 		}
-		localItemsDatabase := db.Database{}
-		localItemsDatabase.InitializeWith(scrapedCompetitions)
-		// printer.PrettyPrint(scrappedCompetitions)
+		localItemsDatabase := db.InitializeWith(scrapedCompetitions)
 
-		// dbCompetitions := database.GetAll()
 		diffIDs := diff.Diff(&localItemsDatabase, &database)
 		diffIDs.PrintDifferencesInfo()
 
-		onlyWCAEvents := localItemsDatabase.FilterWCAEvents()
-		wcaAPIData := dataFetch.GetWCAApiData(makeIdPairs(onlyWCAEvents))
+		merger := db.NewMerger(diffIDs.Added, diffIDs.Passed, diffIDs.Changed)
+		mergedDatabase := merger.Merge(localItemsDatabase, database)
+
+		onlyWCAEvents := mergedDatabase.FilterWCAApiEligible()
+		wcaAPIData := dataFetch.GetWCAApiData(makeWCAApiDTO(onlyWCAEvents))
 		for _, event := range onlyWCAEvents {
-			event.Events = wcaAPIData[event.Id].Events
-			event.MainEvent = wcaAPIData[event.Id].MainEvent
-			event.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
-			event.Registered = wcaAPIData[event.Id].Registered
+			dbItem := mergedDatabase.Get(event.Id)
+			dbItem.Events = wcaAPIData[event.Id].Events
+			dbItem.MainEvent = wcaAPIData[event.Id].MainEvent
+			dbItem.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
+			dbItem.Registered = wcaAPIData[event.Id].Registered
+			mergedDatabase.Update(*dbItem)
 		}
 
-		fmt.Println(localItemsDatabase.GetAll())
+		onlyTravelEligible := mergedDatabase.FilterTravelInfoEligible()
+		travelData := distance.GetTravelData(makeTravelInfoDTO(onlyTravelEligible))
+		for _, event := range onlyTravelEligible {
+			dbItem := mergedDatabase.Get(event.Id)
+			dbItem.Distance = travelData[event.Id].Distance
+			dbItem.Duration = travelData[event.Id].Duration
+			mergedDatabase.Update(*dbItem)
+		}
+
+		for _, event := range mergedDatabase.GetAll() {
+			printer.PrettyPrint(event)
+		}
+		return
 
 		// if diffIDs.IsEmpty() {
 		// 	log.Info("No changes in the events, skipping sending email.")
@@ -83,16 +98,28 @@ var Cmd = &cobra.Command{
 	},
 }
 
-func makeIdPairs(competitions db.CompetitionsCollection) []dataFetch.IdPair {
-	var pairs []dataFetch.IdPair
+func makeWCAApiDTO(competitions db.CompetitionsCollection) []dataFetch.WCAApiDTO {
+	var items []dataFetch.WCAApiDTO
 	for _, competition := range competitions {
-		pairs = append(pairs, dataFetch.IdPair{
+		items = append(items, dataFetch.WCAApiDTO{
 			DatabaseId: competition.Id,
 			OtherId:    competition.ExtractWCAId(),
 		})
 	}
 
-	return pairs
+	return items
+}
+
+func makeTravelInfoDTO(competitions db.CompetitionsCollection) []distance.TravelInfoDTO {
+	var items []distance.TravelInfoDTO
+	for _, competition := range competitions {
+		items = append(items, distance.TravelInfoDTO{
+			DatabaseId: competition.Id,
+			Place:      competition.Place,
+		})
+	}
+
+	return items
 }
 
 // func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {
@@ -119,13 +146,13 @@ func makeIdPairs(competitions db.CompetitionsCollection) []dataFetch.IdPair {
 // 				competitionsToRemove = append(competitionsToRemove, *dbItem)
 // 			}
 // 		}
-// 		writes, err := db.AddItemsBatch(client, competitionsToRemove)
+// 		writes, err := db.AddItemsBatch(client, competitionsToRemoveasd)
 // 		if err != nil {
 // 			log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
 // 			panic(err)
 // 		}
 // 		log.Info("Some items have been removed, marking them as passed events", "savedItems", writes, "allItems", len(scrappedCompetitions))
-// 	}
+// 	}3
 
 // 	return scrappedCompetitions
 // }

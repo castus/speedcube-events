@@ -29,21 +29,26 @@ var PageTypes = struct {
 }
 
 type Competition struct {
-	Type                              string
-	TypeSpecificId                    string
-	WCAId                             string // Legacy, use Type for that
-	Id                                string
-	Header, Name, URL, Place, LogoURL string
-	ContactName, ContactURL           string
-	Date                              string
-	Distance                          string
-	Duration                          string
-	HasWCA                            bool     // Does the score will save in WCA
-	HasPassed                         bool     // Event moved to Past tab
-	Events                            []string // WCA API scrap
-	MainEvent                         string   // WCA GeneralInfo scrap
-	CompetitorLimit                   int      // WCA GeneralInfo scrap
-	Registered                        int      // WCA Registrations scrap
+	Id              string
+	Header          string
+	Name            string
+	URL             string
+	Place           string
+	LogoURL         string
+	ContactName     string
+	ContactURL      string
+	HasWCA          bool // Will the score save in WCA
+	HasPassed       bool // Event moved to Past tab
+	Date            string
+	Type            string
+	TypeSpecificId  string
+	WCAId           string // Legacy, use Type for that
+	Distance        string
+	Duration        string
+	Events          []string // WCA API scrap
+	MainEvent       string   // WCA GeneralInfo scrap
+	CompetitorLimit int      // WCA GeneralInfo scrap
+	Registered      int      // WCA Registrations scrap
 }
 
 func (c Competition) IsEqualTo(competition Competition) bool {
@@ -81,3 +86,91 @@ func (c Competition) ExtractWCAId() string {
 }
 
 type CompetitionsCollection []*Competition
+
+func (c *CompetitionsCollection) FilterNotOnline() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if competition.Place != "zawody online" {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}
+
+func (c *CompetitionsCollection) FilterNotPassed() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if !competition.HasPassed {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}
+
+func (c *CompetitionsCollection) FilterEmptyEvents() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if len(competition.Events) == 0 {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}
+
+func (c *CompetitionsCollection) FilterEmptyMainEvent() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if competition.MainEvent == "" {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}
+
+func (c *CompetitionsCollection) FilterEmptyCompetitorLimit() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if competition.CompetitorLimit == 0 {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}
+
+func (c *CompetitionsCollection) FilterEmptyRegistered() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if competition.Registered == 0 {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}
+
+func (c *CompetitionsCollection) FilterWCAEvents() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if competition.Type == CompetitionType.WCA {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}
+
+func (c *CompetitionsCollection) FilterEmptyDistanceOrDuration() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, competition := range *c {
+		if competition.Distance == "" || competition.Duration == "" {
+			items = append(items, competition)
+		}
+	}
+
+	return items
+}

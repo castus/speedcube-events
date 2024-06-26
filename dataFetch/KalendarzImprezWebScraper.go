@@ -64,7 +64,7 @@ func ScrapCompetitions(fetcher DataFetcher) []db.Competition {
 			if competitionType != db.CompetitionType.Unknown {
 				log.Info("Found known competition type.", "Type", competition.Type, "TypeID", competition.TypeSpecificId)
 			} else {
-				log.Info("Found unknown competition type.", "Id", competition.Id)
+				log.Info("Found unknown competition type.", "Id", competition.Id, "URL", url)
 			}
 
 			logo, _ := s.Find(".ulr-image").Attr("style")

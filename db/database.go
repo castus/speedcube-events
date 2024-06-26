@@ -55,22 +55,36 @@ func (d *Database) Initialize() {
 	}
 }
 
-func (d *Database) InitializeWith(competitions []Competition) {
+func InitializeWith(competitions []Competition) Database {
+	d := Database{}
 	d.Items = make(map[string]Competition)
 	for _, item := range competitions {
 		d.Items[item.Id] = item
 	}
+
+	return d
 }
 
-func (d *Database) Add(id string, item Competition) {
-	_, ok := d.Items[id]
-	if !ok {
+func (d *Database) Add(item Competition) {
+	_, thereIsAnItem := d.Items[item.Id]
+	if thereIsAnItem {
 		msg := "You try to add item that's already in the database"
 		log.Error(msg)
 		panic(msg)
 	}
 
-	d.Items[id] = item
+	d.Items[item.Id] = item
+}
+
+func (d *Database) Update(item Competition) {
+	_, thereIsAnItem := d.Items[item.Id]
+	if !thereIsAnItem {
+		msg := "You try to update item that's not in the database"
+		log.Error(msg)
+		panic(msg)
+	}
+
+	d.Items[item.Id] = item
 }
 
 func (d *Database) Get(id string) *Competition {
@@ -91,13 +105,22 @@ func (d *Database) GetAll() CompetitionsCollection {
 	return items
 }
 
-func (d *Database) FilterWCAEvents() CompetitionsCollection {
-	var items = CompetitionsCollection{}
-	for _, competition := range d.Items {
-		if competition.Type == CompetitionType.WCA {
-			items = append(items, &competition)
-		}
-	}
+func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	items = items.FilterWCAEvents()
+	items = items.FilterEmptyEvents()
+	items = items.FilterEmptyMainEvent()
+	items = items.FilterEmptyCompetitorLimit()
+	items = items.FilterEmptyRegistered()
+
+	return items
+}
+
+func (d *Database) FilterTravelInfoEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	items = items.FilterNotPassed()
+	items = items.FilterNotOnline()
+	items = items.FilterEmptyDistanceOrDuration()
 
 	return items
 }

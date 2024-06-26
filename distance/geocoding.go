@@ -19,10 +19,10 @@ type Coordinate struct {
 func geocodingURL(city string) string {
 	encodedCity := url.QueryEscape(city)
 
-	return fmt.Sprintf("%s/geocoding/v5/mapbox.places/%s.json?country=pl&language=pl&access_token=%s", host, encodedCity, os.Getenv("MAPS_TOKEN"))
+	return fmt.Sprintf("%s/search/geocode/v6/forward?q=%s&country=pl&limit=1&proximity=ip&types=place&language=pl&access_token=%s", host, encodedCity, os.Getenv("MAPS_TOKEN"))
 }
 
-func Coordinates(place string) (Coordinate, error) {
+func coordinates(place string) (Coordinate, error) {
 	response, err := http.Get(geocodingURL(place))
 	if err != nil {
 		return Coordinate{}, err
@@ -38,16 +38,19 @@ func Coordinates(place string) (Coordinate, error) {
 		return Coordinate{}, err
 	}
 	responseJSON := string(bodyBytes)
-
 	features := gjson.Get(responseJSON, "features")
 	if !features.Exists() {
 		return Coordinate{}, nil
 	}
 
-	cityCenter := features.Get("0.center")
-	longitude := cityCenter.Get("0")
-	latitude := cityCenter.Get("1")
+	bestGuessCity := features.Get("0")
+	cityCenter := bestGuessCity.Get("properties")
+	coords := cityCenter.Get("coordinates")
+	longitude := coords.Get("longitude")
+	latitude := coords.Get("latitude")
 
+	fmt.Println(longitude)
+	fmt.Println(latitude)
 	if !longitude.Exists() || !latitude.Exists() {
 		return Coordinate{}, nil
 	}

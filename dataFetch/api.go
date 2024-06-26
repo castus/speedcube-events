@@ -12,7 +12,7 @@ const (
 	apiHost = "https://api.worldcubeassociation.org"
 )
 
-type IdPair struct {
+type WCAApiDTO struct {
 	DatabaseId string
 	OtherId    string
 }
@@ -67,7 +67,7 @@ func (e EventsMap) IdByName(name string) (string, bool) {
 func InitializeEventsMap() EventsMap {
 	log.Info("Trying to fetch events map.")
 
-	res, err := http.Get(fmt.Sprintf("%s/events.json", apiHost))
+	res, err := http.Get(fmt.Sprintf("https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/master/api/events.json"))
 	if err != nil {
 		log.Error("Couldn't fetch API page", err)
 
@@ -99,7 +99,7 @@ func InitializeEventsMap() EventsMap {
 	return data.Items
 }
 
-func GetWCAApiData(ids []IdPair) map[string]WCAApiResponse {
+func GetWCAApiData(ids []WCAApiDTO) map[string]WCAApiResponse {
 	var events = make(map[string]WCAApiResponse)
 	for _, identifier := range ids {
 		basicInfo := fetchBasicInfo(identifier.OtherId)

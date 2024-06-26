@@ -32,28 +32,29 @@ func Direction(lat float64, long float64) (DirectionMeasures, error) {
 		return DirectionMeasures{}, err
 	}
 	responseJSON := string(bodyBytes)
+	fmt.Println(responseJSON)
 
 	routes := gjson.Get(responseJSON, "routes")
 	if !routes.Exists() {
 		return DirectionMeasures{}, nil
 	}
 
-	distance := routes.Get("0.distance")
+	dist := routes.Get("0.distance")
 	duration := routes.Get("0.duration")
 
-	if !distance.Exists() || !duration.Exists() {
+	if !dist.Exists() || !duration.Exists() {
 		return DirectionMeasures{}, nil
 	}
 
 	return DirectionMeasures{
-		Distance: distance.Float(),
+		Distance: dist.Float(),
 		Duration: duration.Float(),
 	}, nil
 }
 
 func directionsURL(lat float64, long float64) string {
-	coordinates := fmt.Sprintf("%s,%s;%f,%f", os.Getenv("HOME_LON"), os.Getenv("HOME_LAT"), long, lat)
-	decodedCoordinates := url.QueryEscape(coordinates)
+	coords := fmt.Sprintf("%s,%s;%f,%f", os.Getenv("HOME_LON"), os.Getenv("HOME_LAT"), long, lat)
+	decodedCoordinates := url.QueryEscape(coords)
 
-	return fmt.Sprintf("%s/directions/v5/mapbox/driving/%s?alternatives=false&geometries=geojson&language=en&overview=full&steps=true&access_token=%s", host, decodedCoordinates, os.Getenv("MAPS_TOKEN"))
+	return fmt.Sprintf("%s/directions/v5/mapbox/driving/%s?alternatives=false&geometries=geojson&language=en&overview=full&steps=true&alley_bias=-1&radiuses=unlimited;unlimited&access_token=%s", host, decodedCoordinates, os.Getenv("MAPS_TOKEN"))
 }
