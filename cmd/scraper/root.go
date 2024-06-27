@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"github.com/castus/speedcube-events/distance"
+	"github.com/castus/speedcube-events/messenger"
 	"github.com/castus/speedcube-events/printer"
 
 	"github.com/castus/speedcube-events/dataFetch"
@@ -72,17 +73,15 @@ var Cmd = &cobra.Command{
 		}
 		return
 
-		// if diffIDs.IsEmpty() {
-		// 	log.Info("No changes in the events, skipping sending email.")
-		// } else {
-		// 	message := messenger.PrepareHeader()
-		// 	message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForAdded(diffIDs, fullDataCompetitions))
-		// 	message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForChanged(diffIDs, fullDataCompetitions))
-		// 	message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForRemoved(diffIDs, dbCompetitions))
-		// 	message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareFooter())
-
-		// 	messenger.Send(message)
-		// }
+		if diffIDs.IsEmpty() {
+			log.Info("No changes in the events, skipping sending email.")
+		} else {
+			message := messenger.PrepareMessage(makeMessengerDTO(
+				diffIDs.Added, mergedDatabase),
+				makeMessengerDTO(diffIDs.Passed, mergedDatabase),
+				makeMessengerDTO(diffIDs.Changed, mergedDatabase))
+			messenger.Send(message)
+		}
 
 		// if printK8SConfig {
 		// 	fmt.Println(externalFetcher.GetK8sJobsConfig(fullDataCompetitions))
@@ -116,6 +115,31 @@ func makeTravelInfoDTO(competitions db.CompetitionsCollection) []distance.Travel
 		items = append(items, distance.TravelInfoDTO{
 			DatabaseId: competition.Id,
 			Place:      competition.Place,
+		})
+	}
+
+	return items
+}
+
+func makeMessengerDTO(IDs []string, db *db.Database) []messenger.MessengerDTO {
+	var items []messenger.MessengerDTO
+	for _, id := range IDs {
+		item := db.Get(id)
+		items = append(items, messenger.MessengerDTO{
+			LogoURL:         item.LogoURL,
+			Name:            item.Name,
+			URL:             item.URL,
+			HasWCA:          item.HasWCA,
+			Date:            item.Date,
+			Distance:        item.Distance,
+			Duration:        item.Duration,
+			Place:           item.Place,
+			Events:          item.Events,
+			MainEvent:       item.MainEvent,
+			CompetitorLimit: item.CompetitorLimit,
+			Registered:      item.Registered,
+			ContactURL:      item.ContactURL,
+			ContactName:     item.ContactName,
 		})
 	}
 
