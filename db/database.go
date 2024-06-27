@@ -29,7 +29,7 @@ func GetItemByID(c *dynamodb.Client, key string) (competition Competition, err e
 }
 
 type Database struct {
-	Items     map[string]Competition
+	items     map[string]Competition
 	client    *dynamodb.Client
 	tableName string
 }
@@ -42,7 +42,7 @@ func (d *Database) Initialize() {
 		panic(err)
 	}
 	d.client = c
-	d.Items = make(map[string]Competition)
+	d.items = make(map[string]Competition)
 
 	competitions, err := d.fetchAllItems()
 	if err != nil {
@@ -51,44 +51,44 @@ func (d *Database) Initialize() {
 	}
 
 	for _, item := range competitions {
-		d.Items[item.Id] = item
+		d.items[item.Id] = item
 	}
 }
 
 func InitializeWith(competitions []Competition) Database {
 	d := Database{}
-	d.Items = make(map[string]Competition)
+	d.items = make(map[string]Competition)
 	for _, item := range competitions {
-		d.Items[item.Id] = item
+		d.items[item.Id] = item
 	}
 
 	return d
 }
 
 func (d *Database) Add(item Competition) {
-	_, thereIsAnItem := d.Items[item.Id]
+	_, thereIsAnItem := d.items[item.Id]
 	if thereIsAnItem {
 		msg := "You try to add item that's already in the database"
 		log.Error(msg)
 		panic(msg)
 	}
 
-	d.Items[item.Id] = item
+	d.items[item.Id] = item
 }
 
 func (d *Database) Update(item Competition) {
-	_, thereIsAnItem := d.Items[item.Id]
+	_, thereIsAnItem := d.items[item.Id]
 	if !thereIsAnItem {
 		msg := "You try to update item that's not in the database"
 		log.Error(msg)
 		panic(msg)
 	}
 
-	d.Items[item.Id] = item
+	d.items[item.Id] = item
 }
 
 func (d *Database) Get(id string) *Competition {
-	item, ok := d.Items[id]
+	item, ok := d.items[id]
 	if !ok {
 		return nil
 	}
@@ -98,7 +98,7 @@ func (d *Database) Get(id string) *Competition {
 
 func (d *Database) GetAll() CompetitionsCollection {
 	var items = CompetitionsCollection{}
-	for _, v := range d.Items {
+	for _, v := range d.items {
 		items = append(items, &v)
 	}
 
@@ -127,7 +127,7 @@ func (d *Database) FilterTravelInfoEligible() CompetitionsCollection {
 
 func (d *Database) StoreInDynamoDB() {
 	var items = []Competition{}
-	for _, v := range d.Items {
+	for _, v := range d.items {
 		items = append(items, v)
 	}
 
