@@ -71,17 +71,17 @@ var Cmd = &cobra.Command{
 		for _, event := range mergedDatabase.GetAll() {
 			printer.PrettyPrint(event)
 		}
-		return
 
 		if diffIDs.IsEmpty() {
 			log.Info("No changes in the events, skipping sending email.")
 		} else {
-			message := messenger.PrepareMessage(makeMessengerDTO(
-				diffIDs.Added, mergedDatabase),
+			message := messenger.PrepareMessage(
+				makeMessengerDTO(diffIDs.Added, mergedDatabase),
 				makeMessengerDTO(diffIDs.Passed, mergedDatabase),
 				makeMessengerDTO(diffIDs.Changed, mergedDatabase))
 			messenger.Send(message)
 		}
+		return
 
 		// if printK8SConfig {
 		// 	fmt.Println(externalFetcher.GetK8sJobsConfig(fullDataCompetitions))

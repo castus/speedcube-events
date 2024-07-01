@@ -9,19 +9,19 @@ import (
 func TestTheSame(t *testing.T) {
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemOne})
 	if !diff.IsEmpty() {
-		t.Fatalf(`Compared items are not the same`)
+		t.Error(`Compared items are not the same`)
 	}
 }
 func TestAdded(t *testing.T) {
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{})
 	if !diff.HasAdded() {
-		t.Fatalf(`There are no added items during difference check`)
+		t.Error(`There are no added items during difference check`)
 	}
 }
 func TestRemoved(t *testing.T) {
 	diff := runDiff([]db.Competition{}, []db.Competition{itemOne})
 	if !diff.HasPassed() {
-		t.Fatalf(`There are no removed items during difference check`)
+		t.Error(`There are no removed items during difference check`)
 	}
 }
 func TestNoChangesType(t *testing.T) {
@@ -29,7 +29,7 @@ func TestNoChangesType(t *testing.T) {
 	itemTwo.Type = "New Type"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesTypeSpecificId(t *testing.T) {
@@ -37,7 +37,7 @@ func TestNoChangesTypeSpecificId(t *testing.T) {
 	itemTwo.TypeSpecificId = "New TypeSpecificId"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesWCAId(t *testing.T) {
@@ -45,7 +45,7 @@ func TestNoChangesWCAId(t *testing.T) {
 	itemTwo.WCAId = "New WCAId"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesDistance(t *testing.T) {
@@ -53,7 +53,7 @@ func TestNoChangesDistance(t *testing.T) {
 	itemTwo.Distance = "New Distance"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesDuration(t *testing.T) {
@@ -61,7 +61,7 @@ func TestNoChangesDuration(t *testing.T) {
 	itemTwo.Duration = "New Duration"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesEvents(t *testing.T) {
@@ -69,7 +69,7 @@ func TestNoChangesEvents(t *testing.T) {
 	itemTwo.Events = []string{"New Events"}
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesMainEvent(t *testing.T) {
@@ -77,7 +77,7 @@ func TestNoChangesMainEvent(t *testing.T) {
 	itemTwo.MainEvent = "New MainEvent"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesCompetitorLimit(t *testing.T) {
@@ -85,7 +85,7 @@ func TestNoChangesCompetitorLimit(t *testing.T) {
 	itemTwo.CompetitorLimit = 123
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestNoChangesRegistered(t *testing.T) {
@@ -93,7 +93,7 @@ func TestNoChangesRegistered(t *testing.T) {
 	itemTwo.Registered = 123
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesName(t *testing.T) {
@@ -101,7 +101,7 @@ func TestChangesName(t *testing.T) {
 	itemTwo.Name = "New Name"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesURL(t *testing.T) {
@@ -109,7 +109,7 @@ func TestChangesURL(t *testing.T) {
 	itemTwo.URL = "New URL"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesPlace(t *testing.T) {
@@ -117,7 +117,7 @@ func TestChangesPlace(t *testing.T) {
 	itemTwo.Place = "New Place"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesLogoURL(t *testing.T) {
@@ -125,7 +125,7 @@ func TestChangesLogoURL(t *testing.T) {
 	itemTwo.LogoURL = "New LogoURL"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesContactName(t *testing.T) {
@@ -133,7 +133,7 @@ func TestChangesContactName(t *testing.T) {
 	itemTwo.ContactName = "New ContactName"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesContactURL(t *testing.T) {
@@ -141,7 +141,7 @@ func TestChangesContactURL(t *testing.T) {
 	itemTwo.ContactURL = "New ContactURL"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesHasWCA(t *testing.T) {
@@ -149,7 +149,7 @@ func TestChangesHasWCA(t *testing.T) {
 	itemTwo.HasWCA = false
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesHasPassed(t *testing.T) {
@@ -157,7 +157,7 @@ func TestChangesHasPassed(t *testing.T) {
 	itemTwo.HasPassed = true
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesDate(t *testing.T) {
@@ -165,7 +165,7 @@ func TestChangesDate(t *testing.T) {
 	itemTwo.Date = "New Date"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChangesHeader(t *testing.T) {
@@ -173,7 +173,7 @@ func TestChangesHeader(t *testing.T) {
 	itemTwo.Header = "New Header"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are changed items during difference check`)
+		t.Error(`There are changed items during difference check`)
 	}
 }
 func TestChanges(t *testing.T) {
@@ -181,7 +181,7 @@ func TestChanges(t *testing.T) {
 	itemTwo.Name = "Competition 2 Name"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
 	if !diff.HasChanged() {
-		t.Fatalf(`There are no changed items during difference check`)
+		t.Error(`There are no changed items during difference check`)
 	}
 }
 
