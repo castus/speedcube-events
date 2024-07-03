@@ -32,7 +32,6 @@ func Direction(lat float64, long float64) (DirectionMeasures, error) {
 		return DirectionMeasures{}, err
 	}
 	responseJSON := string(bodyBytes)
-	fmt.Println(responseJSON)
 
 	routes := gjson.Get(responseJSON, "routes")
 	if !routes.Exists() {

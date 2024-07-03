@@ -1,15 +1,16 @@
 package scraper
 
 import (
-	"github.com/castus/speedcube-events/distance"
-	"github.com/castus/speedcube-events/messenger"
-	"github.com/castus/speedcube-events/printer"
-
+	"fmt"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/diff"
+	"github.com/castus/speedcube-events/distance"
+	"github.com/castus/speedcube-events/externalFetcher"
 	"github.com/castus/speedcube-events/logger"
+	"github.com/castus/speedcube-events/messenger"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var log = logger.Default()
@@ -17,13 +18,13 @@ var useMock bool
 var printK8SConfig bool
 
 func Setup() *cobra.Command {
-	Cmd.Flags().BoolVarP(&useMock, "mock", "m", false, "Use mock file to scrap data")
-	Cmd.Flags().BoolVarP(&printK8SConfig, "k8s", "k", false, "Print Kubernetes config")
+	cmd.Flags().BoolVarP(&useMock, "mock", "m", false, "Use mock file to scrap data")
+	cmd.Flags().BoolVarP(&printK8SConfig, "k8s", "k", false, "Print Kubernetes config")
 
-	return Cmd
+	return cmd
 }
 
-var Cmd = &cobra.Command{
+var cmd = &cobra.Command{
 	Use:   "scrape",
 	Short: "Scrape single source of truth, parse it and export to DynamoDB",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -48,6 +49,12 @@ var Cmd = &cobra.Command{
 		merger := db.NewMerger(diffIDs.Added, diffIDs.Passed, diffIDs.Changed)
 		mergedDatabase := merger.Merge(localItemsDatabase, database)
 
+		localItemsIds := localItemsDatabase.GetIds()
+
+		// Reset databases for safety, to not use it later
+		database = db.Database{}
+		localItemsDatabase = db.Database{}
+
 		onlyWCAEvents := mergedDatabase.FilterWCAApiEligible()
 		wcaAPIData := dataFetch.GetWCAApiData(makeWCAApiDTO(onlyWCAEvents))
 		for _, event := range onlyWCAEvents {
@@ -68,10 +75,6 @@ var Cmd = &cobra.Command{
 			mergedDatabase.Update(*dbItem)
 		}
 
-		for _, event := range mergedDatabase.GetAll() {
-			printer.PrettyPrint(event)
-		}
-
 		if diffIDs.IsEmpty() {
 			log.Info("No changes in the events, skipping sending email.")
 		} else {
@@ -81,19 +84,28 @@ var Cmd = &cobra.Command{
 				makeMessengerDTO(diffIDs.Changed, mergedDatabase))
 			messenger.Send(message)
 		}
-		return
 
-		// if printK8SConfig {
-		// 	fmt.Println(externalFetcher.GetK8sJobsConfig(fullDataCompetitions))
-		// 	return
-		// }
+		onlyScrapedItems := db.CompetitionsCollection{}
+		for _, item := range localItemsIds {
+			dbItem := mergedDatabase.Get(item)
+			onlyScrapedItems = append(onlyScrapedItems, dbItem)
+		}
 
-		// if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
-		// 	externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)
-		// 	log.Info("Running k8s job.")
-		// } else {
-		// 	log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
-		// }
+		onlyScrapEligible := mergedDatabase.FilterScrapCube4FunEligible()
+		k8SCube4FunDTO := makeK8SCube4FunDTO(onlyScrapEligible)
+		k8SPPODTO := makeK8SPPODTO(onlyScrapEligible)
+
+		if printK8SConfig {
+			fmt.Println(externalFetcher.PrintK8sJobsConfig(k8SCube4FunDTO, k8SPPODTO))
+			return
+		}
+
+		if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
+			externalFetcher.SpinK8sJobsToFetchExternalData(k8SCube4FunDTO, k8SPPODTO)
+			log.Info("Running k8s job.")
+		} else {
+			log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
+		}
 	},
 }
 
@@ -103,6 +115,38 @@ func makeWCAApiDTO(competitions db.CompetitionsCollection) []dataFetch.WCAApiDTO
 		items = append(items, dataFetch.WCAApiDTO{
 			DatabaseId: competition.Id,
 			OtherId:    competition.ExtractWCAId(),
+		})
+	}
+
+	return items
+}
+
+func makeK8SCube4FunDTO(competitions db.CompetitionsCollection) []externalFetcher.K8SConfigCube4FunDTO {
+	var items []externalFetcher.K8SConfigCube4FunDTO
+	for _, competition := range competitions {
+		if competition.Type != db.CompetitionType.Cube4Fun {
+			panic(fmt.Sprintf("Expected Cube4Fun item, got %s", competition.Type))
+		}
+		items = append(items, externalFetcher.K8SConfigCube4FunDTO{
+			Type: competition.Type,
+			Id:   competition.Id,
+			URL:  competition.URL,
+		})
+	}
+
+	return items
+}
+
+func makeK8SPPODTO(competitions db.CompetitionsCollection) []externalFetcher.K8SConfigPPODTO {
+	var items []externalFetcher.K8SConfigPPODTO
+	for _, competition := range competitions {
+		if competition.Type != db.CompetitionType.PPO {
+			panic(fmt.Sprintf("Expected PPO item, got %s", competition.Type))
+		}
+		items = append(items, externalFetcher.K8SConfigPPODTO{
+			Type: competition.Type,
+			Id:   competition.Id,
+			URL:  competition.URL,
 		})
 	}
 
@@ -145,38 +189,3 @@ func makeMessengerDTO(IDs []string, db *db.Database) []messenger.MessengerDTO {
 
 	return items
 }
-
-// func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {
-// 	log.Info("Trying to update database.")
-// 	scrappedCompetitions = dataFetch.IncludeEvents(scrappedCompetitions)
-// 	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions, dataFetch.WebFetcher{})
-// 	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions, dataFetch.WebFetcher{})
-// 	scrappedCompetitions = distance.IncludeTravelInfo(scrappedCompetitions, dbCompetitions)
-// 	// printer.PrettyPrint(scrappedCompetitions)
-// 	// os.Exit(1)
-// 	writes, err := db.AddItemsBatch(client, scrappedCompetitions)
-// 	if err != nil {
-// 		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
-// 		panic(err)
-// 	}
-// 	log.Info("Saved batch of items to database", "savedItems", writes, "allItems", len(scrappedCompetitions))
-
-// 	if len(itemsToRemove) > 0 {
-// 		var competitionsToRemove db.Competitions
-// 		for _, id := range itemsToRemove {
-// 			dbItem := dbCompetitions.FindByID(id)
-// 			if dbItem != nil {
-// 				dbItem.HasPassed = true
-// 				competitionsToRemove = append(competitionsToRemove, *dbItem)
-// 			}
-// 		}
-// 		writes, err := db.AddItemsBatch(client, competitionsToRemoveasd)
-// 		if err != nil {
-// 			log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
-// 			panic(err)
-// 		}
-// 		log.Info("Some items have been removed, marking them as passed events", "savedItems", writes, "allItems", len(scrappedCompetitions))
-// 	}3
-
-// 	return scrappedCompetitions
-// }

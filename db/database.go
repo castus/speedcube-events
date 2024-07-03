@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -16,16 +15,14 @@ import (
 type Competitions []Competition
 
 func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
-	return 10, nil
+	panic("Don't use it")
 }
 func AllItems(c *dynamodb.Client) (Competitions, error) {
-	return Competitions{}, nil
+	panic("Don't use it")
 }
-func GetClient() (*dynamodb.Client, error) {
-	return nil, errors.New("Error")
-}
+func GetClient() (*dynamodb.Client, error) { panic("Don't use it") }
 func GetItemByID(c *dynamodb.Client, key string) (competition Competition, err error) {
-	return Competition{}, nil
+	panic("Don't use it")
 }
 
 type Database struct {
@@ -105,6 +102,15 @@ func (d *Database) GetAll() CompetitionsCollection {
 	return items
 }
 
+func (d *Database) GetIds() []string {
+	var items = []string{}
+	for _, v := range d.items {
+		items = append(items, v.Id)
+	}
+
+	return items
+}
+
 func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
 	var items = d.GetAll()
 	items = items.FilterWCAEvents()
@@ -114,6 +120,20 @@ func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
 	items = items.FilterEmptyRegistered()
 
 	return items
+}
+
+func (d *Database) FilterScrapCube4FunEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	out := items.FilterCube4Fun()
+
+	return out.FilterHasURL()
+}
+
+func (d *Database) FilterScrapPPOEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	out := items.FilterPPO()
+
+	return out.FilterHasURL()
 }
 
 func (d *Database) FilterTravelInfoEligible() CompetitionsCollection {

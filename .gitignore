@@ -25,3 +25,4 @@ go.work
 k8s_scrape_job.yml
 kalendarz-imprez.html
 .idea
+data.json

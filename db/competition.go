@@ -20,14 +20,6 @@ var CompetitionType = Types{
 	PPO:      "PPO",
 }
 
-var PageTypes = struct {
-	Info        string
-	Competitors string
-}{
-	Info:        "info",
-	Competitors: "competitors",
-}
-
 type Competition struct {
 	Id              string
 	Header          string

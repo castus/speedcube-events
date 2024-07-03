@@ -1,6 +1,7 @@
 package externalParser
 
 import (
+	"github.com/castus/speedcube-events/externalFetcher"
 	"io"
 
 	"strconv"
@@ -16,9 +17,9 @@ func PPOParse(body io.Reader, competitionType string, id string, pageName string
 	log.Info("Found PPO event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
-	if pageKey == db.PageTypes.Info {
+	if pageKey == externalFetcher.PageTypes.Info {
 		parsePPOInfo(body, dbItem, c, eventsMap)
-	} else if pageKey == db.PageTypes.Competitors {
+	} else if pageKey == externalFetcher.PageTypes.Competitors {
 		parsePPOCompetitors(body, dbItem, c)
 	}
 }

@@ -8,22 +8,25 @@ import (
 )
 
 var log = logger.Default()
+var exportLocally bool
 
-var Cmd = &cobra.Command{
+func Setup() *cobra.Command {
+	cmd.Flags().BoolVarP(&exportLocally, "local", "l", false, "Export database locally")
+
+	return cmd
+}
+
+var cmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export DynamoDB database as JSON to S3",
 	Run: func(cmd *cobra.Command, args []string) {
-		c, err := db.GetClient()
-		if err != nil {
-			log.Error("Couldn't get database client", err)
-			panic(err)
+		database := db.Database{}
+		database.Initialize()
+		dbCompetitions := database.GetAll()
+		if exportLocally {
+			exporter.ExportLocal(dbCompetitions)
+		} else {
+			exporter.Export(dbCompetitions)
 		}
-
-		dbCompetitions, err := db.AllItems(c)
-		if err != nil {
-			log.Error("Couldn't fetch items from database", err)
-			panic(err)
-		}
-		exporter.Export(dbCompetitions)
 	},
 }

@@ -18,10 +18,14 @@ const (
 	fileName = "data.json"
 )
 
-func Export(items db.Competitions) {
+func Export(items db.CompetitionsCollection) {
 	exportToFile(items, fileName)
 	exportToStorage(fileName)
 	cleanup(fileName)
+}
+
+func ExportLocal(items db.CompetitionsCollection) {
+	exportToFile(items, fileName)
 }
 
 func SaveWebpageAsFile(name string) {
@@ -50,7 +54,7 @@ func SaveWebpageAsFile(name string) {
 	log.Info("Webpage file created.")
 }
 
-func exportToFile(items db.Competitions, fileName string) {
+func exportToFile(items db.CompetitionsCollection, fileName string) {
 	j, _ := json.MarshalIndent(items, "", "    ")
 	file, err := os.Create(fileName)
 	if err != nil {

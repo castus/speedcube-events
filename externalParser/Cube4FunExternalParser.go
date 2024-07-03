@@ -9,13 +9,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
+	"github.com/castus/speedcube-events/externalFetcher"
 )
 
 func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem db.Competition, c *dynamodb.Client) {
 	log.Info("Found Cube4Fun event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
-	if pageKey == db.PageTypes.Info {
+	if pageKey == externalFetcher.PageTypes.Info {
 		parseInfo(body, dbItem, c, eventsMap)
 	}
 }

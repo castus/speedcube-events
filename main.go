@@ -23,7 +23,7 @@ func main() {
 
 	rootCmd.AddCommand(saver.Cmd)
 	rootCmd.AddCommand(parser.Cmd)
-	rootCmd.AddCommand(exporter.Cmd)
+	rootCmd.AddCommand(exporter.Setup())
 	rootCmd.AddCommand(scraper.Setup())
 
 	if err := rootCmd.Execute(); err != nil {

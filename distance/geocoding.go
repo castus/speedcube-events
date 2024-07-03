@@ -49,8 +49,6 @@ func coordinates(place string) (Coordinate, error) {
 	longitude := coords.Get("longitude")
 	latitude := coords.Get("latitude")
 
-	fmt.Println(longitude)
-	fmt.Println(latitude)
 	if !longitude.Exists() || !latitude.Exists() {
 		return Coordinate{}, nil
 	}
