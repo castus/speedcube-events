@@ -26,7 +26,7 @@ func Setup() *cobra.Command {
 
 var cmd = &cobra.Command{
 	Use:   "scrape",
-	Short: "Scrape single source of truth, parse it and export to DynamoDB",
+	Short: "Scrape single source of truth, parse it and add all necessary information",
 	Run: func(cmd *cobra.Command, args []string) {
 		database := db.Database{}
 		database.Initialize()
@@ -104,7 +104,7 @@ var cmd = &cobra.Command{
 			externalFetcher.SpinK8sJobsToFetchExternalData(k8SCube4FunDTO, k8SPPODTO)
 			log.Info("Running k8s job.")
 		} else {
-			log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
+			log.Info("Detected local environment, skipping spinning K8s jobs.")
 		}
 	},
 }

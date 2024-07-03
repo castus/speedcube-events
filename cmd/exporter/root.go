@@ -18,7 +18,7 @@ func Setup() *cobra.Command {
 
 var cmd = &cobra.Command{
 	Use:   "export",
-	Short: "Export DynamoDB database as JSON to S3",
+	Short: "Export DynamoDB database as JSON to S3 or to a file",
 	Run: func(cmd *cobra.Command, args []string) {
 		database := db.Database{}
 		database.Initialize()
