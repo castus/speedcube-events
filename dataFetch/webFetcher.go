@@ -22,7 +22,7 @@ func (k WebFetcher) Fetch(URL string) (r io.Reader, ok bool) {
 
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Error("Unable to read file: ", err)
+		log.Error("Unable to read file: ", "error", err)
 	}
 
 	return bytes.NewReader(data), true

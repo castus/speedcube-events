@@ -12,11 +12,182 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func tableName() string {
-	return os.Getenv("TABLE_NAME")
+type Competitions []Competition
+
+func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
+	panic("Don't use it")
 }
 
-func GetClient() (*dynamodb.Client, error) {
+type Database struct {
+	items     map[string]Competition
+	client    *dynamodb.Client
+	tableName string
+}
+
+func (d *Database) Initialize() {
+	d.tableName = os.Getenv("TABLE_NAME")
+	c, err := d.getClient()
+	if err != nil {
+		log.Error("Couldn't get database client", "error", err)
+		panic(err)
+	}
+	d.client = c
+	d.items = make(map[string]Competition)
+
+	competitions, err := d.fetchAllItems()
+	if err != nil {
+		log.Error("Couldn't fetch items from database", "error", err)
+		panic(err)
+	}
+
+	for _, item := range competitions {
+		d.items[item.Id] = item
+	}
+}
+
+func InitializeWith(competitions []Competition) Database {
+	d := Database{}
+	for _, item := range competitions {
+		d.Add(item)
+	}
+
+	return d
+}
+
+func (d *Database) Add(item Competition) {
+	if len(d.items) == 0 {
+		d.items = make(map[string]Competition)
+	}
+	_, thereIsAnItem := d.items[item.Id]
+	if thereIsAnItem {
+		msg := "You try to add item that's already in the database"
+		log.Error(msg)
+		panic(msg)
+	}
+
+	d.items[item.Id] = item
+}
+
+func (d *Database) Update(item Competition) {
+	_, thereIsAnItem := d.items[item.Id]
+	if !thereIsAnItem {
+		msg := "You try to update item that's not in the database"
+		log.Error(msg)
+		panic(msg)
+	}
+
+	d.items[item.Id] = item
+}
+
+func (d *Database) Get(id string) *Competition {
+	item, ok := d.items[id]
+	if !ok {
+		return nil
+	}
+
+	return &item
+}
+
+func (d *Database) GetAll() CompetitionsCollection {
+	var items = CompetitionsCollection{}
+	for _, v := range d.items {
+		items = append(items, &v)
+	}
+
+	return items
+}
+
+func (d *Database) GetIds() []string {
+	var items = []string{}
+	for _, v := range d.items {
+		items = append(items, v.Id)
+	}
+
+	return items
+}
+
+func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	items = items.FilterWCAEvents()
+	items = items.FilterEmptyEvents()
+	items = items.FilterEmptyMainEvent()
+	items = items.FilterEmptyCompetitorLimit()
+	items = items.FilterEmptyRegistered()
+
+	return items
+}
+
+func (d *Database) FilterScrapCube4FunEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	out := items.FilterCube4Fun()
+
+	return out.FilterHasURL()
+}
+
+func (d *Database) FilterScrapPPOEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	out := items.FilterPPO()
+
+	return out.FilterHasURL()
+}
+
+func (d *Database) FilterTravelInfoEligible() CompetitionsCollection {
+	var items = d.GetAll()
+	items = items.FilterNotPassed()
+	items = items.FilterNotOnline()
+	items = items.FilterEmptyDistanceOrDuration()
+
+	return items
+}
+
+func (d *Database) StoreInDynamoDB() {
+	var items = []Competition{}
+	for _, v := range d.items {
+		items = append(items, v)
+	}
+
+	var err error
+	var item map[string]types.AttributeValue
+	maxItems := 100
+	written := 0
+	batchSize := 25 // DynamoDB allows a maximum batch size of 25 items.
+	start := 0
+	end := start + batchSize
+	for start < maxItems && start < len(items) {
+		var writeReqs []types.WriteRequest
+		if end > len(items) {
+			end = len(items)
+		}
+		for _, competition := range items[start:end] {
+			item, err = attributevalue.MarshalMap(competition)
+			if err != nil {
+				log.Error("Couldn't marshal competition", competition.Name, "Here's why: ", "error", err)
+			} else {
+				writeReqs = append(
+					writeReqs,
+					types.WriteRequest{PutRequest: &types.PutRequest{Item: item}},
+				)
+			}
+		}
+		_, err = d.client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{d.tableName: writeReqs}})
+		if err != nil {
+			log.Error("Couldn't add a batch of items to table", d.tableName, "Here's why", "error", err)
+		} else {
+			written += len(writeReqs)
+		}
+		start = end
+		end += batchSize
+	}
+
+	if err != nil {
+		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", written, "allItems", len(items))
+		panic(err)
+	}
+	log.Info("Saved batch of items to database", "savedItems", written, "allItems", len(items))
+}
+
+func (d *Database) getClient() (*dynamodb.Client, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion("eu-central-1"),
 		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
@@ -37,122 +208,11 @@ func GetClient() (*dynamodb.Client, error) {
 	return c, nil
 }
 
-func PutItem(c *dynamodb.Client, competition Competition) (err error) {
-	item, err := attributevalue.MarshalMap(competition)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = c.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: aws.String(tableName()),
-		Item:      item,
-	})
-	if err != nil {
-		log.Error("Couldn't add item to table. Here's why", err)
-	}
-	return err
-}
-
-func GetItemByID(c *dynamodb.Client, key string) (competition Competition, err error) {
-	var comp Competition
-
-	p := dynamodb.NewQueryPaginator(c, &dynamodb.QueryInput{
-		TableName:              aws.String(tableName()),
-		Limit:                  aws.Int32(1),
-		KeyConditionExpression: aws.String("Id = :hashKey"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":hashKey": &types.AttributeValueMemberS{Value: key},
-		},
-	})
-	out, err := p.NextPage(context.TODO())
-	if err != nil {
-		log.Error("Could fetch item", "error", err)
-	} else {
-		err = attributevalue.UnmarshalMap(out.Items[0], &comp)
-		if err != nil {
-			log.Error("Couldn't unmarshal query response. Here's why:", "error", err)
-		}
-	}
-	return comp, err
-}
-
-func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
-	return AddItemsBatch(c, []Competition{item})
-}
-
-func AddItemsBatch(c *dynamodb.Client, items []Competition) (int, error) {
+func (d *Database) fetchAllItems() ([]Competition, error) {
+	var competitions []Competition
 	var err error
-	var item map[string]types.AttributeValue
-	maxItems := 100
-	written := 0
-	batchSize := 25 // DynamoDB allows a maximum batch size of 25 items.
-	start := 0
-	end := start + batchSize
-	for start < maxItems && start < len(items) {
-		var writeReqs []types.WriteRequest
-		if end > len(items) {
-			end = len(items)
-		}
-		for _, competition := range items[start:end] {
-			item, err = attributevalue.MarshalMap(competition)
-			if err != nil {
-				log.Error("Couldn't marshal competition", competition.Name, "Here's why: ", err)
-			} else {
-				writeReqs = append(
-					writeReqs,
-					types.WriteRequest{PutRequest: &types.PutRequest{Item: item}},
-				)
-			}
-		}
-		_, err = c.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
-			RequestItems: map[string][]types.WriteRequest{tableName(): writeReqs}})
-		if err != nil {
-			log.Error("Couldn't add a batch of items to table", tableName(), "Here's why", err)
-		} else {
-			written += len(writeReqs)
-		}
-		start = end
-		end += batchSize
-	}
-
-	return written, err
-}
-
-func DeleteItem(c *dynamodb.Client, ID string, name string) error {
-	id, err := attributevalue.Marshal(ID)
-	if err != nil {
-		panic(err)
-	}
-	nameValue, err := attributevalue.Marshal(name)
-	if err != nil {
-		panic(err)
-	}
-	_, err = c.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
-		TableName: aws.String(tableName()),
-		Key:       map[string]types.AttributeValue{"Id": id, "Name": nameValue},
-	})
-	if err != nil {
-		log.Error("Couldn't delete item from the table.", ID, err)
-	}
-	return err
-}
-
-func DeleteItems(c *dynamodb.Client, items Competitions) error {
-	for _, item := range items {
-		err := DeleteItem(c, item.Id, item.Name)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func AllItems(c *dynamodb.Client) (Competitions, error) {
-	var competitions Competitions
-	var err error
-	response, err := c.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName: aws.String(tableName()),
+	response, err := d.client.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName: aws.String(d.tableName),
 	})
 	if err != nil {
 		log.Error("Could fetch all items", "error", err)

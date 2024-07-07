@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/diff"
 	"github.com/castus/speedcube-events/distance"
+	"github.com/castus/speedcube-events/exporter"
 	"github.com/castus/speedcube-events/externalFetcher"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
@@ -20,114 +20,177 @@ var useMock bool
 var printK8SConfig bool
 
 func Setup() *cobra.Command {
-	Cmd.Flags().BoolVarP(&useMock, "mock", "m", false, "Use mock file to scrap data")
-	Cmd.Flags().BoolVarP(&printK8SConfig, "k8s", "k", false, "Print Kubernetes config")
+	cmd.Flags().BoolVarP(&useMock, "mock", "m", false, "Use mock file to scrap data")
+	cmd.Flags().BoolVarP(&printK8SConfig, "k8s", "k", false, "Print Kubernetes config")
 
-	return Cmd
+	return cmd
 }
 
-var Cmd = &cobra.Command{
+var cmd = &cobra.Command{
 	Use:   "scrape",
-	Short: "Scrape single source of truth, parse it and CRUD to DynamoDB",
+	Short: "Scrape single source of truth, parse it and add all necessary information",
 	Run: func(cmd *cobra.Command, args []string) {
-		c, err := db.GetClient()
-		if err != nil {
-			log.Error("Couldn't get database client", err)
-			panic(err)
-		}
-
-		dbCompetitions, err := db.AllItems(c)
-		if err != nil {
-			log.Error("Couldn't fetch items from database", err)
-			panic(err)
-		}
-
+		database := db.Database{}
+		database.Initialize()
 		var fetcher dataFetch.DataFetcher = dataFetch.WebFetcher{}
 
 		if useMock {
 			fetcher = dataFetch.FileFetcher{}
 		}
 
-		scrappedCompetitions := dataFetch.ScrapCompetitions(fetcher)
-		if len(scrappedCompetitions) == 0 {
-			log.Info("No scraped competitions, finishing")
+		scrapedCompetitions := dataFetch.ScrapCompetitions(fetcher)
+		if len(scrapedCompetitions) == 0 {
+			log.Info("No scraped competitions, finishing.")
 			return
 		}
-		// printer.PrettyPrint(scrappedCompetitions)
+		localItemsDatabase := db.InitializeWith(scrapedCompetitions)
 
-		diffIDs := diff.Diff(scrappedCompetitions, dbCompetitions)
-		displayLogMessage(diffIDs)
-		fullDataCompetitions := updateDatabase(scrappedCompetitions, dbCompetitions, c, diffIDs.Removed)
+		diffIDs := diff.Diff(&localItemsDatabase, &database)
+		diffIDs.PrintDifferencesInfo()
+
+		merger := db.NewMerger(diffIDs.Added, diffIDs.Passed, diffIDs.Changed)
+		mergedDatabase := merger.Merge(localItemsDatabase, database)
+
+		localItemsIds := localItemsDatabase.GetIds()
+
+		// Reset databases for safety, to not use it later
+		database = db.Database{}
+		localItemsDatabase = db.Database{}
+
+		onlyWCAEvents := mergedDatabase.FilterWCAApiEligible()
+		wcaAPIData := dataFetch.GetWCAApiData(makeWCAApiDTO(onlyWCAEvents))
+		for _, event := range onlyWCAEvents {
+			dbItem := mergedDatabase.Get(event.Id)
+			dbItem.Events = wcaAPIData[event.Id].Events
+			dbItem.MainEvent = wcaAPIData[event.Id].MainEvent
+			dbItem.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
+			dbItem.Registered = wcaAPIData[event.Id].Registered
+			mergedDatabase.Update(*dbItem)
+		}
+
+		onlyTravelEligible := mergedDatabase.FilterTravelInfoEligible()
+		travelData := distance.GetTravelData(makeTravelInfoDTO(onlyTravelEligible))
+		for _, event := range onlyTravelEligible {
+			dbItem := mergedDatabase.Get(event.Id)
+			dbItem.Distance = travelData[event.Id].Distance
+			dbItem.Duration = travelData[event.Id].Duration
+			mergedDatabase.Update(*dbItem)
+		}
 
 		if diffIDs.IsEmpty() {
 			log.Info("No changes in the events, skipping sending email.")
 		} else {
-			message := messenger.PrepareHeader()
-			message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForAdded(diffIDs, fullDataCompetitions))
-			message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForChanged(diffIDs, fullDataCompetitions))
-			message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareMessageForRemoved(diffIDs, dbCompetitions))
-			message = fmt.Sprintf("%s\n%s\n", message, messenger.PrepareFooter())
-
+			message := messenger.PrepareMessage(
+				makeMessengerDTO(diffIDs.Added, mergedDatabase),
+				makeMessengerDTO(diffIDs.Passed, mergedDatabase),
+				makeMessengerDTO(diffIDs.Changed, mergedDatabase))
 			messenger.Send(message)
 		}
 
+		onlyScrapedItems := []db.Competition{}
+		for _, item := range localItemsIds {
+			dbItem := mergedDatabase.Get(item)
+			onlyScrapedItems = append(onlyScrapedItems, *dbItem)
+		}
+
+		onlyScrapDatabase := db.InitializeWith(onlyScrapedItems)
+		k8SCube4FunDTO := makeK8SCube4FunDTO(onlyScrapDatabase.FilterScrapCube4FunEligible())
+		k8SPPODTO := makeK8SPPODTO(onlyScrapDatabase.FilterScrapPPOEligible())
+
 		if printK8SConfig {
-			fmt.Println(externalFetcher.GetK8sJobsConfig(fullDataCompetitions))
+			fmt.Println(externalFetcher.PrintK8sJobsConfig(k8SCube4FunDTO, k8SPPODTO))
 			return
 		}
 
 		if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
-			externalFetcher.SpinK8sJobsToFetchExternalData(fullDataCompetitions)
+			externalFetcher.SpinK8sJobsToFetchExternalData(k8SCube4FunDTO, k8SPPODTO)
 			log.Info("Running k8s job.")
 		} else {
-			log.Info("Detected local environment, skipping spinning K8s jobs to fetch external resources.")
+			log.Info("Detected local environment, skipping spinning K8s jobs.")
 		}
+
+		exporter.ExportForFrontend(*mergedDatabase)
+		exporter.PersistDatabase(*mergedDatabase)
 	},
 }
 
-func updateDatabase(scrappedCompetitions db.Competitions, dbCompetitions db.Competitions, client *dynamodb.Client, itemsToRemove []string) db.Competitions {
-	log.Info("Trying to update database.")
-	scrappedCompetitions = dataFetch.IncludeEvents(scrappedCompetitions)
-	scrappedCompetitions = dataFetch.IncludeRegistrations(scrappedCompetitions, dataFetch.WebFetcher{})
-	scrappedCompetitions = dataFetch.IncludeGeneralInfo(scrappedCompetitions, dataFetch.WebFetcher{})
-	scrappedCompetitions = distance.IncludeTravelInfo(scrappedCompetitions, dbCompetitions)
-	// printer.PrettyPrint(scrappedCompetitions)
-	// os.Exit(1)
-	writes, err := db.AddItemsBatch(client, scrappedCompetitions)
-	if err != nil {
-		log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
-		panic(err)
-	}
-	log.Info("Saved batch of items to database", "savedItems", writes, "allItems", len(scrappedCompetitions))
-
-	if len(itemsToRemove) > 0 {
-		var competitionsToRemove db.Competitions
-		for _, id := range itemsToRemove {
-			dbItem := dbCompetitions.FindByID(id)
-			if dbItem != nil {
-				dbItem.HasPassed = true
-				competitionsToRemove = append(competitionsToRemove, *dbItem)
-			}
-		}
-		writes, err := db.AddItemsBatch(client, competitionsToRemove)
-		if err != nil {
-			log.Error("Couldn't save batch of items to database", "error", err, "savedItems", writes, "allItems", len(scrappedCompetitions))
-			panic(err)
-		}
-		log.Info("Some items have been removed, marking them as passed events", "savedItems", writes, "allItems", len(scrappedCompetitions))
+func makeWCAApiDTO(competitions db.CompetitionsCollection) []dataFetch.WCAApiDTO {
+	var items []dataFetch.WCAApiDTO
+	for _, competition := range competitions {
+		items = append(items, dataFetch.WCAApiDTO{
+			DatabaseId: competition.Id,
+			OtherId:    competition.ExtractWCAId(),
+		})
 	}
 
-	return scrappedCompetitions
+	return items
 }
 
-func displayLogMessage(diffs diff.Differences) {
-	if diffs.HasChanged() {
-		log.Info("Items to change", "length", len(diffs.Changed))
+func makeK8SCube4FunDTO(competitions db.CompetitionsCollection) []externalFetcher.K8SConfigCube4FunDTO {
+	var items []externalFetcher.K8SConfigCube4FunDTO
+	for _, competition := range competitions {
+		if competition.Type != db.CompetitionType.Cube4Fun {
+			panic(fmt.Sprintf("Expected Cube4Fun item, got %s", competition.Type))
+		}
+		items = append(items, externalFetcher.K8SConfigCube4FunDTO{
+			Type: competition.Type,
+			Id:   competition.Id,
+			URL:  competition.URL,
+		})
 	}
-	if diffs.HasAdded() {
-		log.Info("Items to add", "length", len(diffs.Added))
+
+	return items
+}
+
+func makeK8SPPODTO(competitions db.CompetitionsCollection) []externalFetcher.K8SConfigPPODTO {
+	var items []externalFetcher.K8SConfigPPODTO
+	for _, competition := range competitions {
+		if competition.Type != db.CompetitionType.PPO {
+			panic(fmt.Sprintf("Expected PPO item, got %s", competition.Type))
+		}
+		items = append(items, externalFetcher.K8SConfigPPODTO{
+			Type: competition.Type,
+			Id:   competition.Id,
+			URL:  competition.URL,
+		})
 	}
-	if diffs.HasRemoved() {
-		log.Info("Items to mark as passed", "length", len(diffs.Removed))
+
+	return items
+}
+
+func makeTravelInfoDTO(competitions db.CompetitionsCollection) []distance.TravelInfoDTO {
+	var items []distance.TravelInfoDTO
+	for _, competition := range competitions {
+		items = append(items, distance.TravelInfoDTO{
+			DatabaseId: competition.Id,
+			Place:      competition.Place,
+		})
 	}
+
+	return items
+}
+
+func makeMessengerDTO(IDs []string, db *db.Database) []messenger.MessengerDTO {
+	var items []messenger.MessengerDTO
+	for _, id := range IDs {
+		item := db.Get(id)
+		items = append(items, messenger.MessengerDTO{
+			LogoURL:         item.LogoURL,
+			Name:            item.Name,
+			URL:             item.URL,
+			HasWCA:          item.HasWCA,
+			Date:            item.Date,
+			Distance:        item.Distance,
+			Duration:        item.Duration,
+			Place:           item.Place,
+			Events:          item.Events,
+			MainEvent:       item.MainEvent,
+			CompetitorLimit: item.CompetitorLimit,
+			Registered:      item.Registered,
+			ContactURL:      item.ContactURL,
+			ContactName:     item.ContactName,
+		})
+	}
+
+	return items
 }

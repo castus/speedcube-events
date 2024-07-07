@@ -14,8 +14,12 @@ import (
 )
 
 const (
-	Host       = "https://www.speedcubing.pl"
-	EventsPath = "kalendarz-imprez"
+	registrationsPath = "registrations"
+	WCAHost           = "worldcubeassociation.org"
+	Cube4FunHost      = "cube4fun.pl"
+	RubiArtHost       = "rubiart.pl"
+	Host              = "https://www.speedcubing.pl"
+	EventsPath        = "kalendarz-imprez"
 )
 
 var log = logger.Default()
@@ -24,8 +28,8 @@ type DataFetcher interface {
 	Fetch(URL string) (r io.Reader, ok bool)
 }
 
-func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
-	var competitions db.Competitions
+func ScrapCompetitions(fetcher DataFetcher) []db.Competition {
+	var competitions []db.Competition
 
 	URL := fmt.Sprintf("%s/%s", Host, EventsPath)
 	r, ok := fetcher.Fetch(URL)
@@ -64,7 +68,7 @@ func ScrapCompetitions(fetcher DataFetcher) db.Competitions {
 			if competitionType != db.CompetitionType.Unknown {
 				log.Info("Found known competition type.", "Type", competition.Type, "TypeID", competition.TypeSpecificId)
 			} else {
-				log.Info("Found unknown competition type.", "Id", competition.Id)
+				log.Info("Found unknown competition type.", "Id", competition.Id, "URL", url)
 			}
 
 			logo, _ := s.Find(".ulr-image").Attr("style")

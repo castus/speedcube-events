@@ -33,7 +33,7 @@ func Send(message string) {
 	client := sendgrid.NewSendClient(os.Getenv("MAIL_TOKEN"))
 	_, err := client.Send(m)
 	if err != nil {
-		log.Error("Couldn't send email", err)
+		log.Error("Couldn't send email", "error", err)
 	} else {
 		log.Info("Email send")
 	}

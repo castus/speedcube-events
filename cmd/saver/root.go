@@ -10,7 +10,7 @@ var log = logger.Default()
 
 var Cmd = &cobra.Command{
 	Use:   "save",
-	Short: "Save a source of truth page to disc",
+	Short: "Save a source of truth page locally",
 	Run: func(cmd *cobra.Command, args []string) {
 		exporter.SaveWebpageAsFile("kalendarz-imprez.html")
 		log.Info("Webpage saved on disk")

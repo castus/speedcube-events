@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/logger"
 
 	k8sBatchV1 "k8s.io/api/batch/v1"
@@ -16,6 +15,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
+var PageTypes = struct {
+	Info        string
+	Competitors string
+}{
+	Info:        "info",
+	Competitors: "competitors",
+}
 
 var log = logger.Default()
 
@@ -27,12 +34,24 @@ type ExternalFetchConfig struct {
 	PageType     string
 }
 
-func GetK8sJobsConfig(competitions db.Competitions) string {
-	return stringifiedConfig(competitions)
+type K8SConfigCube4FunDTO struct {
+	Type string
+	Id   string
+	URL  string
 }
 
-func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
-	jobConfig := stringifiedConfig(competitions)
+type K8SConfigPPODTO struct {
+	Type string
+	Id   string
+	URL  string
+}
+
+func PrintK8sJobsConfig(c4f []K8SConfigCube4FunDTO, ppo []K8SConfigPPODTO) string {
+	return stringifyConfig(c4f, ppo)
+}
+
+func SpinK8sJobsToFetchExternalData(c4f []K8SConfigCube4FunDTO, ppo []K8SConfigPPODTO) {
+	jobConfig := stringifyConfig(c4f, ppo)
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -77,12 +96,15 @@ func SpinK8sJobsToFetchExternalData(competitions db.Competitions) {
 	}
 }
 
-func stringifiedConfig(competitions db.Competitions) string {
+func stringifyConfig(c4f []K8SConfigCube4FunDTO, ppo []K8SConfigPPODTO) string {
 	var allConfigs = []ExternalFetchConfig{}
-	c4fItems := FetchConfigCube4Fun(competitions)
-	ppoItems := FetchConfigPPO(competitions)
-	allConfigs = append(allConfigs, c4fItems...)
-	allConfigs = append(allConfigs, ppoItems...)
+	for _, item := range c4f {
+		allConfigs = append(allConfigs, cube4FunConfig(PageTypes.Info, item))
+	}
+	for _, item := range ppo {
+		allConfigs = append(allConfigs, ppoConfig(PageTypes.Info, item))
+		allConfigs = append(allConfigs, ppoConfig(PageTypes.Competitors, item))
+	}
 	j, _ := json.Marshal(allConfigs)
 	str := string(j)
 	stringifyConfig := strings.ReplaceAll(str, `\`, `\\`)
@@ -123,4 +145,24 @@ func secrets() []v1.EnvVar {
 	}
 
 	return secrets
+}
+
+func cube4FunConfig(page string, item K8SConfigCube4FunDTO) ExternalFetchConfig {
+	return ExternalFetchConfig{
+		Type:         item.Type,
+		Id:           item.Id,
+		URL:          fmt.Sprintf("%s/%s", item.URL, page),
+		S3BucketPath: fmt.Sprintf("%s/%s/%s.html", item.Type, item.Id, page),
+		PageType:     page,
+	}
+}
+
+func ppoConfig(page string, item K8SConfigPPODTO) ExternalFetchConfig {
+	return ExternalFetchConfig{
+		Type:         item.Type,
+		Id:           item.Id,
+		URL:          item.URL,
+		S3BucketPath: fmt.Sprintf("%s/%s/%s.html", item.Type, item.Id, page),
+		PageType:     page,
+	}
 }

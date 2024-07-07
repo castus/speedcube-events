@@ -18,10 +18,20 @@ const (
 	fileName = "data.json"
 )
 
-func Export(items db.Competitions) {
+func ExportForFrontend(database db.Database) {
+	items := database.GetAll()
 	exportToFile(items, fileName)
 	exportToStorage(fileName)
 	cleanup(fileName)
+}
+
+func ExportLocal(database db.Database) {
+	items := database.GetAll()
+	exportToFile(items, fileName)
+}
+
+func PersistDatabase(database db.Database) {
+	database.StoreInDynamoDB()
 }
 
 func SaveWebpageAsFile(name string) {
@@ -34,32 +44,32 @@ func SaveWebpageAsFile(name string) {
 
 	file, err := os.Create(name)
 	if err != nil {
-		log.Error("Couldn't create webpage file", err)
+		log.Error("Couldn't create webpage file", "error", err)
 		panic(err)
 	}
 
 	defer file.Close()
 
-	content, err := io.ReadAll(r)
+	content, _ := io.ReadAll(r)
 	_, err = file.Write(content)
 	if err != nil {
-		log.Error("Couldn't write to a webpage file", err)
+		log.Error("Couldn't write to a webpage file", "error", err)
 		panic(err)
 	}
 
 	log.Info("Webpage file created.")
 }
 
-func exportToFile(items db.Competitions, fileName string) {
+func exportToFile(items db.CompetitionsCollection, fileName string) {
 	j, _ := json.MarshalIndent(items, "", "    ")
 	file, err := os.Create(fileName)
 	if err != nil {
-		log.Error("Couldn't create database file", err)
+		log.Error("Couldn't create database file", "error", err)
 		panic(err)
 	}
 
 	defer file.Close()
-	_, err = file.Write(j)
+	_, _ = file.Write(j)
 
 	log.Info("Database file created.")
 }

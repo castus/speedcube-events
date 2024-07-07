@@ -39,7 +39,7 @@ func AllKeys(bucketName string) []string {
 	var keys = []string{}
 	c, err := s3Client()
 	if err != nil {
-		log.Error("Couldn't get S3Client client", err)
+		log.Error("Couldn't get S3Client client", "error", err)
 		panic(err)
 	}
 
@@ -62,7 +62,7 @@ func Contents(bucketName string, key string) string {
 	c, err := s3Client()
 	log.Info("Trying to get S3 object.", "bucketName", bucketName, "objectKey", key)
 	if err != nil {
-		log.Error("Couldn't get S3Client client", err)
+		log.Error("Couldn't get S3Client client", "error", err)
 		panic(err)
 	}
 
@@ -84,7 +84,7 @@ func Contents(bucketName string, key string) string {
 func Save(bucketName string, key string, content io.Reader) {
 	c, err := s3Client()
 	if err != nil {
-		log.Error("Couldn't get S3Client client", err)
+		log.Error("Couldn't get S3Client client", "error", err)
 		panic(err)
 	}
 
