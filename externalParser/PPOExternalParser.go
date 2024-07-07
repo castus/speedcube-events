@@ -13,7 +13,7 @@ import (
 	"github.com/castus/speedcube-events/db"
 )
 
-func PPOParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition) {
+func PPOParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition) *db.Competition {
 	log.Info("Found PPO event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
@@ -22,6 +22,8 @@ func PPOParse(body io.Reader, competitionType string, id string, pageName string
 	} else if pageKey == externalFetcher.PageTypes.Competitors {
 		parsePPOCompetitors(body, dbItem)
 	}
+
+	return dbItem
 }
 
 func parsePPOInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.EventsMap) {

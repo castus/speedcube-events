@@ -9,9 +9,13 @@ import (
 
 var log = logger.Default()
 var exportLocally bool
+var exportForFrontend bool
+var persistDatabase bool
 
 func Setup() *cobra.Command {
 	cmd.Flags().BoolVarP(&exportLocally, "local", "l", false, "Export database locally")
+	cmd.Flags().BoolVarP(&exportForFrontend, "frontend", "f", false, "Export database to S3 for frontend use")
+	cmd.Flags().BoolVarP(&persistDatabase, "database", "d", false, "Export database to DynamoDB")
 
 	return cmd
 }
@@ -22,10 +26,12 @@ var cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		database := db.Database{}
 		database.Initialize()
-		if exportLocally {
-			exporter.ExportLocal(database)
+		if persistDatabase {
+			exporter.PersistDatabase(database)
+		} else if exportForFrontend {
+			exporter.ExportForFrontend(database)
 		} else {
-			exporter.Export(database)
+			exporter.ExportLocal(database)
 		}
 	},
 }

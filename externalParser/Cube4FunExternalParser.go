@@ -11,13 +11,15 @@ import (
 	"github.com/castus/speedcube-events/externalFetcher"
 )
 
-func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition) {
+func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition) *db.Competition {
 	log.Info("Found Cube4Fun event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
 	if pageKey == externalFetcher.PageTypes.Info {
 		parseInfo(body, dbItem, eventsMap)
 	}
+
+	return dbItem
 }
 
 func parseInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.EventsMap) {
@@ -71,6 +73,7 @@ func parseInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.Event
 			dbItem.Events = eventsArr
 		}
 	})
+
 	log.Info("Successfully update Cube4Fun event, ready to export")
 }
 

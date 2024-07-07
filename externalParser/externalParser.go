@@ -17,7 +17,6 @@ var log = logger.Default()
 func Run() {
 	database := db.Database{}
 	database.Initialize()
-
 	log.Info("Trying to get S3 objects for external parsing")
 	bucketName := os.Getenv("S3_WEB_DATA_BUCKET_NAME")
 	allKeys := s3.AllKeys(bucketName)
@@ -36,10 +35,13 @@ func Run() {
 
 		s3Content := s3.Contents(bucketName, key)
 		if externalType == db.CompetitionType.Cube4Fun {
-			Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)
+			dbItem := Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)
+			database.Update(*dbItem)
 		} else if externalType == db.CompetitionType.PPO {
-			PPOParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)
+			dbItem := PPOParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)
+			database.Update(*dbItem)
 		}
 	}
-	exporter.Export(database)
+	exporter.ExportForFrontend(database)
+	exporter.PersistDatabase(database)
 }

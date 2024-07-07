@@ -109,7 +109,8 @@ var cmd = &cobra.Command{
 			log.Info("Detected local environment, skipping spinning K8s jobs.")
 		}
 
-		exporter.Export(*mergedDatabase)
+		exporter.ExportForFrontend(*mergedDatabase)
+		exporter.PersistDatabase(*mergedDatabase)
 	},
 }
 

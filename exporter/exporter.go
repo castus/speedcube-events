@@ -18,7 +18,7 @@ const (
 	fileName = "data.json"
 )
 
-func Export(database db.Database) {
+func ExportForFrontend(database db.Database) {
 	items := database.GetAll()
 	exportToFile(items, fileName)
 	exportToStorage(fileName)
@@ -28,6 +28,10 @@ func Export(database db.Database) {
 func ExportLocal(database db.Database) {
 	items := database.GetAll()
 	exportToFile(items, fileName)
+}
+
+func PersistDatabase(database db.Database) {
+	database.StoreInDynamoDB()
 }
 
 func SaveWebpageAsFile(name string) {

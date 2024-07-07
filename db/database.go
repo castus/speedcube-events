@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -16,13 +15,6 @@ import (
 type Competitions []Competition
 
 func AddItemBatch(c *dynamodb.Client, item Competition) (int, error) {
-	panic("Don't use it")
-}
-func AllItems(c *dynamodb.Client) (Competitions, error) {
-	panic("Don't use it")
-}
-func GetClient() (*dynamodb.Client, error) { panic("Don't use it") }
-func GetItemByID(c *dynamodb.Client, key string) (competition Competition, err error) {
 	panic("Don't use it")
 }
 
@@ -63,7 +55,6 @@ func InitializeWith(competitions []Competition) Database {
 }
 
 func (d *Database) Add(item Competition) {
-	fmt.Println(d.items)
 	if len(d.items) == 0 {
 		d.items = make(map[string]Competition)
 	}
