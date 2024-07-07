@@ -1,30 +1,30 @@
 package externalParser
 
 import (
-	"github.com/castus/speedcube-events/externalFetcher"
 	"io"
+
+	"github.com/castus/speedcube-events/externalFetcher"
 
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 )
 
-func PPOParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem db.Competition, c *dynamodb.Client) {
+func PPOParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition) {
 	log.Info("Found PPO event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
 	if pageKey == externalFetcher.PageTypes.Info {
-		parsePPOInfo(body, dbItem, c, eventsMap)
+		parsePPOInfo(body, dbItem, eventsMap)
 	} else if pageKey == externalFetcher.PageTypes.Competitors {
-		parsePPOCompetitors(body, dbItem, c)
+		parsePPOCompetitors(body, dbItem)
 	}
 }
 
-func parsePPOInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, eventsMap dataFetch.EventsMap) {
+func parsePPOInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.EventsMap) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -65,15 +65,10 @@ func parsePPOInfo(body io.Reader, dbItem db.Competition, c *dynamodb.Client, eve
 		}
 	})
 
-	_, err = db.AddItemBatch(c, dbItem)
-	if err != nil {
-		log.Error("Couldn't save item to database after update PPO", "error", err)
-		panic(err)
-	}
-	log.Info("Successfully update PPO event info page", "id", dbItem.Id)
+	log.Info("Successfully update PPO event info page, ready to export")
 }
 
-func parsePPOCompetitors(body io.Reader, dbItem db.Competition, c *dynamodb.Client) {
+func parsePPOCompetitors(body io.Reader, dbItem *db.Competition) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -85,10 +80,5 @@ func parsePPOCompetitors(body io.Reader, dbItem db.Competition, c *dynamodb.Clie
 		log.Info("Found Registered competitors for PPO", "registered", registered)
 	})
 
-	_, err = db.AddItemBatch(c, dbItem)
-	if err != nil {
-		log.Error("Couldn't save item to database after update PPO", "error", err)
-		panic(err)
-	}
-	log.Info("Successfully update PPO event competitors page", "id", dbItem.Id)
+	log.Info("Successfully update PPO event competitors page, ready to export", "id", dbItem.Id)
 }

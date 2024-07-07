@@ -7,6 +7,7 @@ import (
 
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
+	"github.com/castus/speedcube-events/exporter"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/s3"
 )
@@ -14,11 +15,8 @@ import (
 var log = logger.Default()
 
 func Run() {
-	c, err := db.GetClient()
-	if err != nil {
-		log.Error("Couldn't get database client", err)
-		panic(err)
-	}
+	database := db.Database{}
+	database.Initialize()
 
 	log.Info("Trying to get S3 objects for external parsing")
 	bucketName := os.Getenv("S3_WEB_DATA_BUCKET_NAME")
@@ -30,20 +28,18 @@ func Run() {
 		id := items[1]
 		externalPageName := items[2]
 		log.Info("Trying to parse object", "key", key)
-		dbItem, err := db.GetItemByID(c, id)
-		if err != nil {
-			log.Error("Couldn't get competition from database", err)
-			panic(err)
-		}
+		dbItem := database.Get(id)
 		if dbItem.HasPassed {
+			log.Info("Event passed, nothing to parse", "key", key)
 			continue
 		}
 
 		s3Content := s3.Contents(bucketName, key)
 		if externalType == db.CompetitionType.Cube4Fun {
-			Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem, c)
+			Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)
 		} else if externalType == db.CompetitionType.PPO {
-			PPOParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem, c)
+			PPOParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)
 		}
 	}
+	exporter.Export(database)
 }

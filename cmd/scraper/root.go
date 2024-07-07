@@ -2,15 +2,17 @@ package scraper
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/diff"
 	"github.com/castus/speedcube-events/distance"
+	"github.com/castus/speedcube-events/exporter"
 	"github.com/castus/speedcube-events/externalFetcher"
 	"github.com/castus/speedcube-events/logger"
 	"github.com/castus/speedcube-events/messenger"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var log = logger.Default()
@@ -85,15 +87,15 @@ var cmd = &cobra.Command{
 			messenger.Send(message)
 		}
 
-		onlyScrapedItems := db.CompetitionsCollection{}
+		onlyScrapedItems := []db.Competition{}
 		for _, item := range localItemsIds {
 			dbItem := mergedDatabase.Get(item)
-			onlyScrapedItems = append(onlyScrapedItems, dbItem)
+			onlyScrapedItems = append(onlyScrapedItems, *dbItem)
 		}
 
-		onlyScrapEligible := mergedDatabase.FilterScrapCube4FunEligible()
-		k8SCube4FunDTO := makeK8SCube4FunDTO(onlyScrapEligible)
-		k8SPPODTO := makeK8SPPODTO(onlyScrapEligible)
+		onlyScrapDatabase := db.InitializeWith(onlyScrapedItems)
+		k8SCube4FunDTO := makeK8SCube4FunDTO(onlyScrapDatabase.FilterScrapCube4FunEligible())
+		k8SPPODTO := makeK8SPPODTO(onlyScrapDatabase.FilterScrapPPOEligible())
 
 		if printK8SConfig {
 			fmt.Println(externalFetcher.PrintK8sJobsConfig(k8SCube4FunDTO, k8SPPODTO))
@@ -106,6 +108,8 @@ var cmd = &cobra.Command{
 		} else {
 			log.Info("Detected local environment, skipping spinning K8s jobs.")
 		}
+
+		exporter.Export(*mergedDatabase)
 	},
 }
 

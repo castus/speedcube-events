@@ -1,52 +1,50 @@
 package db
 
-import (
-	"math/rand"
-)
+// "math/rand"
 
-func randomItem(items []string) string {
-	if len(items) == 0 {
-		return ""
-	}
-	randomIndex := rand.Intn(len(items))
-	return items[randomIndex]
-}
+// func randomItem(items []string) string {
+// 	if len(items) == 0 {
+// 		return ""
+// 	}
+// 	randomIndex := rand.Intn(len(items))
+// 	return items[randomIndex]
+// }
 
-func randomEvents() []string {
-	items := []string{
-		"sq1",
-		"skewb",
-		"pyram",
-		"minx",
-		"222",
-		"333bf",
-		"333",
-		"333fm",
-		"333mbf",
-		"333mbo",
-		"333oh",
-		"333ft",
-		"444bf",
-		"444",
-		"555bf",
-		"555",
-		"666",
-		"777",
-		"clock",
-		"magic",
-	}
-	if len(items) == 0 {
-		return []string{""}
-	}
+// func randomEvents() []string {
+// 	items := []string{
+// 		"sq1",
+// 		"skewb",
+// 		"pyram",
+// 		"minx",
+// 		"222",
+// 		"333bf",
+// 		"333",
+// 		"333fm",
+// 		"333mbf",
+// 		"333mbo",
+// 		"333oh",
+// 		"333ft",
+// 		"444bf",
+// 		"444",
+// 		"555bf",
+// 		"555",
+// 		"666",
+// 		"777",
+// 		"clock",
+// 		"magic",
+// 	}
+// 	if len(items) == 0 {
+// 		return []string{""}
+// 	}
 
-	subsetLength := rand.Intn(len(items)) + 1
+// 	subsetLength := rand.Intn(len(items)) + 1
 
-	rand.Shuffle(len(items), func(i, j int) {
-		items[i], items[j] = items[j], items[i]
-	})
+// 	rand.Shuffle(len(items), func(i, j int) {
+// 		items[i], items[j] = items[j], items[i]
+// 	})
 
-	return items[:subsetLength]
-}
+// 	return items[:subsetLength]
+// }
 
 func mockLocalDatabase() []Competition {
 	return []Competition{
@@ -250,31 +248,3 @@ func mockLocalDatabase() []Competition {
 		},
 	}
 }
-
-var possibleType = []string{
-	CompetitionType.WCA,
-	CompetitionType.Unknown,
-	CompetitionType.PPO,
-	CompetitionType.Cube4Fun,
-}
-var possibleTypeSpecificId = []string{
-	"",
-}
-var possibleWCAId = []string{}
-var possibleId = []string{}
-var possibleHeader = []string{}
-var possibleName = []string{}
-var possibleURL = []string{}
-var possiblePlace = []string{}
-var possibleLogoURL = []string{}
-var possibleContactName = []string{}
-var possibleContactURL = []string{}
-var possibleDate = []string{}
-var possibleDistance = []string{}
-var possibleDuration = []string{}
-var possibleHasWCA = []string{}
-var possibleHasPassed = []string{}
-var possibleEvents = []string{}
-var possibleMainEvent = []string{}
-var possibleCompetitorLimit = []string{}
-var possibleRegistered = []string{}

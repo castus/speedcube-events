@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -35,7 +36,7 @@ func (d *Database) Initialize() {
 	d.tableName = os.Getenv("TABLE_NAME")
 	c, err := d.getClient()
 	if err != nil {
-		log.Error("Couldn't get database client", err)
+		log.Error("Couldn't get database client", "error", err)
 		panic(err)
 	}
 	d.client = c
@@ -43,7 +44,7 @@ func (d *Database) Initialize() {
 
 	competitions, err := d.fetchAllItems()
 	if err != nil {
-		log.Error("Couldn't fetch items from database", err)
+		log.Error("Couldn't fetch items from database", "error", err)
 		panic(err)
 	}
 
@@ -54,15 +55,18 @@ func (d *Database) Initialize() {
 
 func InitializeWith(competitions []Competition) Database {
 	d := Database{}
-	d.items = make(map[string]Competition)
 	for _, item := range competitions {
-		d.items[item.Id] = item
+		d.Add(item)
 	}
 
 	return d
 }
 
 func (d *Database) Add(item Competition) {
+	fmt.Println(d.items)
+	if len(d.items) == 0 {
+		d.items = make(map[string]Competition)
+	}
 	_, thereIsAnItem := d.items[item.Id]
 	if thereIsAnItem {
 		msg := "You try to add item that's already in the database"
@@ -166,7 +170,7 @@ func (d *Database) StoreInDynamoDB() {
 		for _, competition := range items[start:end] {
 			item, err = attributevalue.MarshalMap(competition)
 			if err != nil {
-				log.Error("Couldn't marshal competition", competition.Name, "Here's why: ", err)
+				log.Error("Couldn't marshal competition", competition.Name, "Here's why: ", "error", err)
 			} else {
 				writeReqs = append(
 					writeReqs,
@@ -177,7 +181,7 @@ func (d *Database) StoreInDynamoDB() {
 		_, err = d.client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]types.WriteRequest{d.tableName: writeReqs}})
 		if err != nil {
-			log.Error("Couldn't add a batch of items to table", d.tableName, "Here's why", err)
+			log.Error("Couldn't add a batch of items to table", d.tableName, "Here's why", "error", err)
 		} else {
 			written += len(writeReqs)
 		}

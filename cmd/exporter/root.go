@@ -22,11 +22,10 @@ var cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		database := db.Database{}
 		database.Initialize()
-		dbCompetitions := database.GetAll()
 		if exportLocally {
-			exporter.ExportLocal(dbCompetitions)
+			exporter.ExportLocal(database)
 		} else {
-			exporter.Export(dbCompetitions)
+			exporter.Export(database)
 		}
 	},
 }
