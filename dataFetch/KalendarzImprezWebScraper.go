@@ -14,8 +14,12 @@ import (
 )
 
 const (
-	Host       = "https://www.speedcubing.pl"
-	EventsPath = "kalendarz-imprez"
+	registrationsPath = "registrations"
+	WCAHost           = "worldcubeassociation.org"
+	Cube4FunHost      = "cube4fun.pl"
+	RubiArtHost       = "rubiart.pl"
+	Host              = "https://www.speedcubing.pl"
+	EventsPath        = "kalendarz-imprez"
 )
 
 var log = logger.Default()

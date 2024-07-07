@@ -67,9 +67,9 @@ func (e EventsMap) IdByName(name string) (string, bool) {
 func InitializeEventsMap() EventsMap {
 	log.Info("Trying to fetch events map.")
 
-	res, err := http.Get(fmt.Sprintf("https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/master/api/events.json"))
+	res, err := http.Get("https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/master/api/events.json")
 	if err != nil {
-		log.Error("Couldn't fetch API page", err)
+		log.Error("Couldn't fetch API page", "error", err)
 
 		return EventsMap{}
 	}
@@ -82,7 +82,7 @@ func InitializeEventsMap() EventsMap {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Error("Couldn't get response body", err)
+		log.Error("Couldn't get response body", "error", err)
 
 		return EventsMap{}
 	}
@@ -90,7 +90,7 @@ func InitializeEventsMap() EventsMap {
 	var data EventsMapResponse
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		log.Error("Couldn't unmarshal JSON", err)
+		log.Error("Couldn't unmarshal JSON", "error", err)
 		return EventsMap{}
 	}
 
@@ -121,14 +121,14 @@ func fetchBasicInfo(id string) basicInfoJSONResponse {
 
 	jsonData, err := fetchApi(fmt.Sprintf("%s/competitions/%s", apiHost, id))
 	if err != nil {
-		log.Error("Error requesting WCA Api", err)
+		log.Error("Error requesting WCA Api", "error", err)
 		return basicInfoJSONResponse{}
 	}
 
 	var data basicInfoJSONResponse
 	err = json.Unmarshal(jsonData, &data)
 	if err != nil {
-		log.Error("Couldn't unmarshal JSON", err)
+		log.Error("Couldn't unmarshal JSON", "error", err)
 		return basicInfoJSONResponse{}
 	}
 
@@ -143,14 +143,14 @@ func fetchCompetitors(id string) int {
 
 	jsonData, err := fetchApi(fmt.Sprintf("%s/competitions/%s/registrations", apiHost, id))
 	if err != nil {
-		log.Error("Error requesting WCA Api", err)
+		log.Error("Error requesting WCA Api", "error", err)
 		return registered
 	}
 
 	var data []registrationsJSONResponse
 	err = json.Unmarshal(jsonData, &data)
 	if err != nil {
-		log.Error("Couldn't unmarshal JSON", err)
+		log.Error("Couldn't unmarshal JSON", "error", err)
 		return registered
 	}
 
@@ -164,7 +164,7 @@ func fetchCompetitors(id string) int {
 func fetchApi(url string) ([]byte, error) {
 	res, err := http.Get(url)
 	if err != nil {
-		log.Error("Can't fetch WCA API", err)
+		log.Error("Can't fetch WCA API", "error", err)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -176,7 +176,7 @@ func fetchApi(url string) ([]byte, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Error("Couldn't get response body from WCA API", err)
+		log.Error("Couldn't get response body from WCA API", "error", err)
 		return nil, err
 	}
 
