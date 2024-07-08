@@ -15,7 +15,7 @@ require (
 	github.com/sendgrid/sendgrid-go v3.14.0+incompatible
 	github.com/spf13/cobra v1.8.1
 	github.com/tidwall/gjson v1.17.1
-	k8s.io/api v0.30.1
+	k8s.io/api v0.30.2
 	k8s.io/apimachinery v0.30.2
 	k8s.io/client-go v0.30.1
 )
