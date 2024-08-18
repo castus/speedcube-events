@@ -123,8 +123,8 @@ func TestFilterWCAApiEligible_alreadyHasEvents(t *testing.T) {
 		item1, anotherEligibleItemForWCA(),
 	})
 	items := d.FilterWCAApiEligible()
-	if len(items) != 1 {
-		t.Error("Expected 1 item, got ", len(items))
+	if len(items) != 2 {
+		t.Error("Expected 2 item, got ", len(items))
 	}
 }
 
@@ -139,8 +139,8 @@ func TestFilterWCAApiEligible_alreadyHasMainEvent(t *testing.T) {
 		item1, anotherEligibleItemForWCA(),
 	})
 	items := d.FilterWCAApiEligible()
-	if len(items) != 1 {
-		t.Error("Expected 1 item, got ", len(items))
+	if len(items) != 2 {
+		t.Error("Expected 2 item, got ", len(items))
 	}
 }
 
@@ -155,8 +155,8 @@ func TestFilterWCAApiEligible_alreadyHasCompetitorLimit(t *testing.T) {
 		item1, anotherEligibleItemForWCA(),
 	})
 	items := d.FilterWCAApiEligible()
-	if len(items) != 1 {
-		t.Error("Expected 1 item, got ", len(items))
+	if len(items) != 2 {
+		t.Error("Expected 2 item, got ", len(items))
 	}
 }
 
@@ -171,8 +171,8 @@ func TestFilterWCAApiEligible_alreadyHasRegistered(t *testing.T) {
 		item1, anotherEligibleItemForWCA(),
 	})
 	items := d.FilterWCAApiEligible()
-	if len(items) != 1 {
-		t.Error("Expected 1 item, got ", len(items))
+	if len(items) != 2 {
+		t.Error("Expected 2 item, got ", len(items))
 	}
 }
 

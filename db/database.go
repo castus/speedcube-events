@@ -109,10 +109,6 @@ func (d *Database) GetIds() []string {
 func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
 	var items = d.GetAll()
 	items = items.FilterWCAEvents()
-	items = items.FilterEmptyEvents()
-	items = items.FilterEmptyMainEvent()
-	items = items.FilterEmptyCompetitorLimit()
-	items = items.FilterEmptyRegistered()
 
 	return items
 }
