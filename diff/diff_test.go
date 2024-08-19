@@ -24,27 +24,27 @@ func TestRemoved(t *testing.T) {
 		t.Error(`There are no removed items during difference check`)
 	}
 }
-func TestNoChangesType(t *testing.T) {
+func TestChangesType(t *testing.T) {
 	itemTwo := itemOne
 	itemTwo.Type = "New Type"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
-	if diff.HasChanged() {
+	if !diff.HasChanged() {
 		t.Error(`There are changed items during difference check`)
 	}
 }
-func TestNoChangesTypeSpecificId(t *testing.T) {
+func TestChangesTypeSpecificId(t *testing.T) {
 	itemTwo := itemOne
 	itemTwo.TypeSpecificId = "New TypeSpecificId"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
-	if diff.HasChanged() {
+	if !diff.HasChanged() {
 		t.Error(`There are changed items during difference check`)
 	}
 }
-func TestNoChangesWCAId(t *testing.T) {
+func TestChangesWCAId(t *testing.T) {
 	itemTwo := itemOne
 	itemTwo.WCAId = "New WCAId"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
-	if diff.HasChanged() {
+	if !diff.HasChanged() {
 		t.Error(`There are changed items during difference check`)
 	}
 }
@@ -72,11 +72,11 @@ func TestNoChangesEvents(t *testing.T) {
 		t.Error(`There are changed items during difference check`)
 	}
 }
-func TestNoChangesMainEvent(t *testing.T) {
+func TestChangesMainEvent(t *testing.T) {
 	itemTwo := itemOne
 	itemTwo.MainEvent = "New MainEvent"
 	diff := runDiff([]db.Competition{itemOne}, []db.Competition{itemTwo})
-	if diff.HasChanged() {
+	if !diff.HasChanged() {
 		t.Error(`There are changed items during difference check`)
 	}
 }

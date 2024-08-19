@@ -88,6 +88,18 @@ func updateChanged(changed []string, from Database, to *Database) *Database {
 			if dbItem.Date != localItem.Date {
 				dbItem.Date = localItem.Date
 			}
+			if dbItem.Type != localItem.Type {
+				dbItem.Type = localItem.Type
+			}
+			if dbItem.TypeSpecificId != localItem.TypeSpecificId {
+				dbItem.TypeSpecificId = localItem.TypeSpecificId
+			}
+			if dbItem.WCAId != localItem.WCAId {
+				dbItem.WCAId = localItem.WCAId
+			}
+			if dbItem.MainEvent != localItem.MainEvent {
+				dbItem.MainEvent = localItem.MainEvent
+			}
 
 			to.Update(*dbItem)
 		}
