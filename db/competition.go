@@ -56,9 +56,7 @@ func (c Competition) IsEqualTo(competition Competition) bool {
 		c.HasPassed == competition.HasPassed &&
 		c.Date == competition.Date &&
 		c.TypeSpecificId == competition.TypeSpecificId &&
-		c.Type == competition.Type &&
-		c.WCAId == competition.WCAId &&
-		c.MainEvent == competition.MainEvent {
+		c.Type == competition.Type {
 		return true
 	}
 

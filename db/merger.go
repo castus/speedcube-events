@@ -94,12 +94,6 @@ func updateChanged(changed []string, from Database, to *Database) *Database {
 			if dbItem.TypeSpecificId != localItem.TypeSpecificId {
 				dbItem.TypeSpecificId = localItem.TypeSpecificId
 			}
-			if dbItem.WCAId != localItem.WCAId {
-				dbItem.WCAId = localItem.WCAId
-			}
-			if dbItem.MainEvent != localItem.MainEvent {
-				dbItem.MainEvent = localItem.MainEvent
-			}
 
 			to.Update(*dbItem)
 		}
