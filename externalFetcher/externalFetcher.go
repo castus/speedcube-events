@@ -91,7 +91,7 @@ func SpinK8sJobsToFetchExternalData(c4f []K8SConfigCube4FunDTO, ppo []K8SConfigP
 
 	_, err = jobs.Create(context.TODO(), jobSpec, k8sMetaV1.CreateOptions{})
 	if err != nil {
-		log.Error("Failed to create K8s job", err)
+		log.Error("Failed to create K8s job", "error", err)
 		panic(err)
 	}
 }
