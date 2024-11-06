@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	apiHost = "https://api.worldcubeassociation.org"
+	apiHost               = "https://api.worldcubeassociation.org"
+	registrationApiHostV2 = "https://registration.worldcubeassociation.org/api/v1/registrations"
 )
 
 type WCAApiDTO struct {
@@ -18,9 +19,10 @@ type WCAApiDTO struct {
 }
 
 type basicInfoJSONResponse struct {
-	Events          []string `json:"event_ids"`
-	MainEvent       string   `json:"main_event_id"`
-	CompetitorLimit int      `json:"competitor_limit"`
+	Events              []string `json:"event_ids"`
+	MainEvent           string   `json:"main_event_id"`
+	CompetitorLimit     int      `json:"competitor_limit"`
+	RegistrationVersion string   `json:"registration_version"`
 }
 type registrationsJSONResponse struct {
 	Id int `json:"id"`
@@ -104,7 +106,16 @@ func GetWCAApiData(ids []WCAApiDTO) map[string]WCAApiResponse {
 	for _, identifier := range ids {
 		basicInfo := fetchBasicInfo(identifier.OtherId)
 		time.Sleep(time.Millisecond * 500)
-		registered := fetchCompetitors(identifier.OtherId)
+
+		registrationUrl := ""
+		if basicInfo.RegistrationVersion == "v1" {
+			registrationUrl = fmt.Sprintf("%s/competitions/%s/registrations", apiHost, identifier.OtherId)
+		} else if basicInfo.RegistrationVersion == "v2" {
+			registrationUrl = fmt.Sprintf("%s/%s", registrationApiHostV2, identifier.OtherId)
+		}
+
+		registered := fetchCompetitors(identifier.OtherId, registrationUrl)
+
 		events[identifier.DatabaseId] = WCAApiResponse{
 			Events:          basicInfo.Events,
 			MainEvent:       basicInfo.MainEvent,
@@ -137,11 +148,11 @@ func fetchBasicInfo(id string) basicInfoJSONResponse {
 	return data
 }
 
-func fetchCompetitors(id string) int {
+func fetchCompetitors(id string, url string) int {
 	log.Info("Trying to fetch registered.", "WCAId", id)
 	var registered = 0
 
-	jsonData, err := fetchApi(fmt.Sprintf("%s/competitions/%s/registrations", apiHost, id))
+	jsonData, err := fetchApi(url)
 	if err != nil {
 		log.Error("Error requesting WCA Api", "error", err)
 		return registered
