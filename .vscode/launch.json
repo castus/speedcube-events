@@ -20,7 +20,7 @@
       "mode": "test",
       "program": "${workspaceFolder}/main.go",
       "envFile": "${workspaceFolder}/.env",
-      "args": [""]
+      "args": ["run go test ./... instead"]
     },
     {
       "name": "scrape",
