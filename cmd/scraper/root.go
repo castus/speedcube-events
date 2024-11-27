@@ -68,6 +68,30 @@ var cmd = &cobra.Command{
 			mergedDatabase.Update(*dbItem)
 		}
 
+		// C4F events are WCA compliant, but their Id is different
+		// so we need to find the id using WCA search
+		// If that succeed, then the event is a WCA event
+		onlyC4FEvents := mergedDatabase.FilterScrapCube4FunEligible()
+		for _, event := range onlyC4FEvents {
+			WCAId, err := dataFetch.SearchWCAApiData(makeSearchWCAApiDTO(event))
+			if err != nil {
+				log.Error("Error when finding Cube4Fun event on WCA", "error", err)
+				continue
+			}
+
+			dto := getWCAApiDTO(event.Id, WCAId)
+			out := []dataFetch.WCAApiDTO{dto}
+			wcaAPIData = dataFetch.GetWCAApiData(out)
+			dbItem := mergedDatabase.Get(event.Id)
+			dbItem.WCAId = WCAId
+			dbItem.Type = db.CompetitionType.WCA
+			dbItem.Events = wcaAPIData[event.Id].Events
+			dbItem.MainEvent = wcaAPIData[event.Id].MainEvent
+			dbItem.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
+			dbItem.Registered = wcaAPIData[event.Id].Registered
+			mergedDatabase.Update(*dbItem)
+		}
+
 		onlyTravelEligible := mergedDatabase.FilterTravelInfoEligible()
 		travelData := distance.GetTravelData(makeTravelInfoDTO(onlyTravelEligible))
 		for _, event := range onlyTravelEligible {
@@ -117,13 +141,25 @@ var cmd = &cobra.Command{
 func makeWCAApiDTO(competitions db.CompetitionsCollection) []dataFetch.WCAApiDTO {
 	var items []dataFetch.WCAApiDTO
 	for _, competition := range competitions {
-		items = append(items, dataFetch.WCAApiDTO{
-			DatabaseId: competition.Id,
-			OtherId:    competition.ExtractWCAId(),
-		})
+		items = append(items, getWCAApiDTO(competition.Id, competition.ExtractWCAId()))
 	}
 
 	return items
+}
+
+func getWCAApiDTO(databaseId string, otherId string) dataFetch.WCAApiDTO {
+	return dataFetch.WCAApiDTO{
+		DatabaseId: databaseId,
+		OtherId:    otherId,
+	}
+}
+
+func makeSearchWCAApiDTO(competition *db.Competition) dataFetch.SearchWCAApiDTO {
+	item := dataFetch.SearchWCAApiDTO{
+		Name: competition.Name,
+	}
+
+	return item
 }
 
 func makeK8SCube4FunDTO(competitions db.CompetitionsCollection) []externalFetcher.K8SConfigCube4FunDTO {

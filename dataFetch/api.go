@@ -5,17 +5,27 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
 const (
 	apiHost               = "https://api.worldcubeassociation.org"
 	registrationApiHostV2 = "https://registration.worldcubeassociation.org/api/v1/registrations"
+	searchApi             = "https://www.worldcubeassociation.org/api/v0/competitions"
 )
 
 type WCAApiDTO struct {
 	DatabaseId string
 	OtherId    string
+}
+
+type SearchWCAApiDTO struct {
+	Name string
+}
+
+type basicSearchJSONResponse struct {
+	Id string `json:"id"`
 }
 
 type basicInfoJSONResponse struct {
@@ -101,6 +111,10 @@ func InitializeEventsMap() EventsMap {
 	return data.Items
 }
 
+func SearchWCAApiData(item SearchWCAApiDTO) (string, error) {
+	return fetchSearchInfo(item.Name)
+}
+
 func GetWCAApiData(ids []WCAApiDTO) map[string]WCAApiResponse {
 	var events = make(map[string]WCAApiResponse)
 	for _, identifier := range ids {
@@ -110,7 +124,7 @@ func GetWCAApiData(ids []WCAApiDTO) map[string]WCAApiResponse {
 		registrationUrl := ""
 		if basicInfo.RegistrationVersion == "v1" {
 			registrationUrl = fmt.Sprintf("%s/competitions/%s/registrations", apiHost, identifier.OtherId)
-		} else if basicInfo.RegistrationVersion == "v2" {
+		} else {
 			registrationUrl = fmt.Sprintf("%s/%s", registrationApiHostV2, identifier.OtherId)
 		}
 
@@ -146,6 +160,32 @@ func fetchBasicInfo(id string) basicInfoJSONResponse {
 	log.Info("Found basic info from WCA Api.", "WCAId", id, "Data", data)
 
 	return data
+}
+
+func fetchSearchInfo(name string) (string, error) {
+	log.Info("Trying to search for WCA Id.", "Event name", name)
+
+	jsonData, err := fetchApi(fmt.Sprintf("%s?q=%s", searchApi, url.QueryEscape(name)))
+	if err != nil {
+		log.Error("Error requesting WCA Api", "error", err)
+		return "", err
+	}
+
+	var data []basicSearchJSONResponse
+	err = json.Unmarshal(jsonData, &data)
+	if err != nil {
+		log.Error("Couldn't unmarshal JSON", "error", err)
+		return "", err
+	}
+	if len(data) == 0 {
+		return "", fmt.Errorf("search response was empty")
+	}
+
+	out := data[0].Id
+
+	log.Info("Found ID for a WCA using Search API", "WCAId", out)
+
+	return out, nil
 }
 
 func fetchCompetitors(id string, url string) int {
