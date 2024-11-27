@@ -4,7 +4,7 @@ WORKDIR /data
 COPY . /data
 RUN GOOS=linux GOARCH=amd64 go build -o speedcube-events
 
-FROM ubuntu:mantic
+FROM ubuntu:noble
 RUN apt update -y && apt upgrade -y && apt install -y \
   locales \
   curl \
