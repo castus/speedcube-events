@@ -11,7 +11,7 @@ import (
 
 const (
 	apiHost               = "https://api.worldcubeassociation.org"
-	registrationApiHostV2 = "https://registration.worldcubeassociation.org/api/v1/registrations"
+	registrationApiHostV2 = "https://worldcubeassociation.org/api/v1/registrations"
 	searchApi             = "https://www.worldcubeassociation.org/api/v0/competitions"
 )
 
