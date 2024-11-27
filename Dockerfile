@@ -5,7 +5,7 @@ COPY . /data
 RUN GOOS=linux GOARCH=amd64 go build -o speedcube-events
 
 FROM ubuntu:mantic
-RUN apt-get update -y && apt-get upgrade -y && apt-get install -yq \
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
   locales \
   curl \
   tzdata \
