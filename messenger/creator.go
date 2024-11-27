@@ -65,7 +65,7 @@ var sectionHeaderTemplate = `
 		</div>
 	</div>
 </div>`
-var eventImageTemplate = `<img src="https://raw.githubusercontent.com/cubing/icons/main/svgs/event/{{.}}.svg" class="event-image-{{.}}" width="20" height="20" alt="{{.}}" style="vertical-align: bottom;" />`
+var eventImageTemplate = `<img src="https://raw.githubusercontent.com/castus/castus.github.io/refs/heads/master/assets/events/{{.}}.png" class="event-image-{{.}}" width="20" height="20" alt="{{.}}" style="vertical-align: bottom;" />`
 var itemTemplate = `
 <div class="u-row-container competition-item" style="padding: 0px;background-color: transparent">
 	<div class="u-row" style="margin: 0 auto;min-width: 320px;max-width: 600px;overflow-wrap: break-word;word-wrap: break-word;word-break: break-word;background-color: transparent;">

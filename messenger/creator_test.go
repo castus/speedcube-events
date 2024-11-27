@@ -173,7 +173,7 @@ func TestEvents_empty(t *testing.T) {
 	item.Events = []string{}
 	out := PrepareMessage([]MessengerDTO{item}, []MessengerDTO{}, []MessengerDTO{})
 
-	if strings.Contains(out, "events") {
+	if strings.Contains(out, "Konkurencje") {
 		t.Error(`Expected lack of events but got one`)
 	}
 }
