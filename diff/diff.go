@@ -3,6 +3,7 @@ package diff
 import (
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/logger"
+	"github.com/castus/speedcube-events/printer"
 )
 
 type Differences struct {
@@ -61,12 +62,12 @@ func Diff(localItemsDatabase *db.Database, database *db.Database) Differences {
 
 func (d *Differences) PrintDifferencesInfo() {
 	if d.HasChanged() {
-		log.Info("Items to change", "length", len(d.Changed))
+		log.Info("Items to change", "length", len(d.Changed), "ids", printer.Stringify(d.Changed))
 	}
 	if d.HasAdded() {
-		log.Info("Items to add", "length", len(d.Added))
+		log.Info("Items to add", "length", len(d.Added), "ids", printer.Stringify(d.Added))
 	}
 	if d.HasPassed() {
-		log.Info("Items to mark as passed", "length", len(d.Passed))
+		log.Info("Items to mark as passed", "length", len(d.Passed), "ids", printer.Stringify(d.Passed))
 	}
 }

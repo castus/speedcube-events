@@ -184,10 +184,16 @@ func TestFilterScrapEligible_Cube4Fun(t *testing.T) {
 	item1.URL = "http://google.com"
 	item2.Type = CompetitionType.Cube4Fun
 	item2.URL = "http://google.com"
-	item3.Type = CompetitionType.WCA
+	item3.Type = CompetitionType.Cube4Fun
 	item3.URL = "http://google.com"
+	item3.CompetitorLimit = 123
+	item3.Events = []string{
+		"333",
+	}
+	item3.MainEvent = "333"
+	item3.Registered = 123
 	d := InitializeWith([]Competition{
-		item1, item2,
+		item1, item2, item3,
 	})
 	items := d.FilterScrapCube4FunEligible()
 	if len(items) != 1 {
@@ -206,7 +212,7 @@ func TestFilterScrapEligible_Cube4FunWithoutURL(t *testing.T) {
 	item3.Type = CompetitionType.WCA
 	item3.URL = "http://google.com"
 	d := InitializeWith([]Competition{
-		item1, item2,
+		item1, item2, item3,
 	})
 	items := d.FilterScrapCube4FunEligible()
 	if len(items) != 0 {

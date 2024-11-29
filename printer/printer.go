@@ -6,6 +6,10 @@ import (
 )
 
 func PrettyPrint(obj any) {
+	fmt.Print(Stringify(obj))
+}
+
+func Stringify(obj any) string {
 	j, _ := json.MarshalIndent(obj, "", "    ")
-	fmt.Printf("%s\n", j)
+	return fmt.Sprintf("%s\n", j)
 }

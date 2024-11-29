@@ -115,9 +115,19 @@ func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
 
 func (d *Database) FilterScrapCube4FunEligible() CompetitionsCollection {
 	var items = d.GetAll()
-	out := items.FilterCube4Fun()
+	var out = CompetitionsCollection{}
+	items = items.FilterCube4Fun()
+	items = items.FilterHasURL()
+	for _, item := range items {
+		if item.CompetitorLimit == 0 &&
+			item.Registered == 0 &&
+			item.MainEvent == "" &&
+			len(item.Events) == 0 {
+			out = append(out, item)
+		}
+	}
 
-	return out.FilterHasURL()
+	return out
 }
 
 func (d *Database) FilterScrapPPOEligible() CompetitionsCollection {

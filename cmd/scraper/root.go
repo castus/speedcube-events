@@ -70,27 +70,26 @@ var cmd = &cobra.Command{
 
 		// C4F events are WCA compliant, but their Id is different
 		// so we need to find the id using WCA search
-		// If that succeed, then the event is a WCA event
-		// onlyC4FEvents := mergedDatabase.FilterScrapCube4FunEligible()
-		// for _, event := range onlyC4FEvents {
-		// 	WCAId, err := dataFetch.SearchWCAApiData(makeSearchWCAApiDTO(event))
-		// 	if err != nil {
-		// 		log.Error("Error when finding Cube4Fun event on WCA", "error", err)
-		// 		continue
-		// 	}
+		// and fill the rest of the details to not use browser scrap
+		onlyC4FEvents := mergedDatabase.FilterScrapCube4FunEligible()
+		for _, event := range onlyC4FEvents {
+			WCAId, err := dataFetch.SearchWCAApiData(makeSearchWCAApiDTO(event))
+			if err != nil {
+				log.Error("Error when finding Cube4Fun event on WCA", "error", err)
+				continue
+			}
 
-		// 	dto := getWCAApiDTO(event.Id, WCAId)
-		// 	out := []dataFetch.WCAApiDTO{dto}
-		// 	wcaAPIData = dataFetch.GetWCAApiData(out)
-		// 	dbItem := mergedDatabase.Get(event.Id)
-		// 	dbItem.WCAId = WCAId
-		// 	dbItem.Type = db.CompetitionType.WCA
-		// 	dbItem.Events = wcaAPIData[event.Id].Events
-		// 	dbItem.MainEvent = wcaAPIData[event.Id].MainEvent
-		// 	dbItem.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
-		// 	dbItem.Registered = wcaAPIData[event.Id].Registered
-		// 	mergedDatabase.Update(*dbItem)
-		// }
+			dto := getWCAApiDTO(event.Id, WCAId)
+			out := []dataFetch.WCAApiDTO{dto}
+			wcaAPIData = dataFetch.GetWCAApiData(out)
+			dbItem := mergedDatabase.Get(event.Id)
+			dbItem.WCAId = WCAId
+			dbItem.Events = wcaAPIData[event.Id].Events
+			dbItem.MainEvent = wcaAPIData[event.Id].MainEvent
+			dbItem.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
+			dbItem.Registered = wcaAPIData[event.Id].Registered
+			mergedDatabase.Update(*dbItem)
+		}
 
 		onlyTravelEligible := mergedDatabase.FilterTravelInfoEligible()
 		travelData := distance.GetTravelData(makeTravelInfoDTO(onlyTravelEligible))
