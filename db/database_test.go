@@ -96,6 +96,23 @@ func TestFilterWCAApiEligible_allFields(t *testing.T) {
 	}
 }
 
+func TestFilterWCAApiEligible_passedEvent(t *testing.T) {
+	item1 := mockLocalDatabase()[0]
+	item1.HasPassed = true
+	item1.Type = CompetitionType.WCA
+	item1.Events = []string{}
+	item1.MainEvent = ""
+	item1.CompetitorLimit = 0
+	item1.Registered = 0
+	d := InitializeWith([]Competition{
+		item1, anotherEligibleItemForWCA(),
+	})
+	items := d.FilterWCAApiEligible()
+	if len(items) != 1 {
+		t.Error("Expected 1 item, got ", len(items))
+	}
+}
+
 func TestFilterWCAApiEligible_wrongType(t *testing.T) {
 	item1 := mockLocalDatabase()[0]
 	item1.Type = CompetitionType.PPO
@@ -198,6 +215,32 @@ func TestFilterScrapEligible_Cube4Fun(t *testing.T) {
 	items := d.FilterScrapCube4FunEligible()
 	if len(items) != 1 {
 		t.Error("Expected 1 items, got ", len(items))
+	}
+}
+
+func TestFilterScrapEligible_Cube4FunPassedEvents(t *testing.T) {
+	item1 := mockLocalDatabase()[0]
+	item2 := mockLocalDatabase()[1]
+	item3 := mockLocalDatabase()[3]
+	item1.Type = CompetitionType.PPO
+	item1.URL = "http://google.com"
+	item2.Type = CompetitionType.Cube4Fun
+	item2.URL = "http://google.com"
+	item2.HasPassed = true
+	item3.Type = CompetitionType.Cube4Fun
+	item3.URL = "http://google.com"
+	item3.CompetitorLimit = 123
+	item3.Events = []string{
+		"333",
+	}
+	item3.MainEvent = "333"
+	item3.Registered = 123
+	d := InitializeWith([]Competition{
+		item1, item2, item3,
+	})
+	items := d.FilterScrapCube4FunEligible()
+	if len(items) != 0 {
+		t.Error("Expected 0 items, got ", len(items))
 	}
 }
 
