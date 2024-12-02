@@ -19,6 +19,7 @@ The _Speedcube events_ project's purpose is to create a place when all Poland Sp
 1. Data is stored in DynamoDB and exported as json to S3.
 1. The page is hosted using Vercel
 1. To scrap services like Cube4Fun or PPO, Selenium web driver is used.
+   1. For Cube4Fun event, the WCA search mechanism is used first, and when there is a result, data is taken from there.
 1. The core scrap mechanism is run in on-premise K8s using CronJobs.
 1. Web scraping is spin up automatically as K8s Jobs.
 
@@ -41,3 +42,8 @@ To be able to run jobs in Terraform, some things has to be added:
 kubectl create clusterrole job_runner --verb=get,list,watch,create,update,patch,delete --resource=jobs,jobs/status
 kubectl create clusterrolebinding job_runner_binding --clusterrole=job_runner --serviceaccount=default:default
 ```
+
+## Support services
+
+1. [Brevo](https://brevo.com) - SMTP email relay
+2. [Amplitude](https://amplitude.com) - Analytics
