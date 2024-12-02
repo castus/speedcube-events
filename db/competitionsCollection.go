@@ -13,7 +13,7 @@ func (c *CompetitionsCollection) FilterNotOnline() CompetitionsCollection {
 	return items
 }
 
-func (c *CompetitionsCollection) FilterNotPassed() CompetitionsCollection {
+func (c *CompetitionsCollection) FilterActive() CompetitionsCollection {
 	var items = CompetitionsCollection{}
 	for _, competition := range *c {
 		if !competition.HasPassed {

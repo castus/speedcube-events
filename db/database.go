@@ -108,7 +108,15 @@ func (d *Database) GetIds() []string {
 
 func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
 	var items = d.GetAll()
+	items = items.FilterActive()
 	items = items.FilterWCAEvents()
+
+	return items
+}
+
+func (d *Database) FilterActive() CompetitionsCollection {
+	var items = d.GetAll()
+	items = items.FilterActive()
 
 	return items
 }
@@ -116,6 +124,7 @@ func (d *Database) FilterWCAApiEligible() CompetitionsCollection {
 func (d *Database) FilterScrapCube4FunEligible() CompetitionsCollection {
 	var items = d.GetAll()
 	var out = CompetitionsCollection{}
+	items = items.FilterActive()
 	items = items.FilterCube4Fun()
 	items = items.FilterHasURL()
 	for _, item := range items {
@@ -139,7 +148,7 @@ func (d *Database) FilterScrapPPOEligible() CompetitionsCollection {
 
 func (d *Database) FilterTravelInfoEligible() CompetitionsCollection {
 	var items = d.GetAll()
-	items = items.FilterNotPassed()
+	items = items.FilterActive()
 	items = items.FilterNotOnline()
 	items = items.FilterEmptyDistanceOrDuration()
 
