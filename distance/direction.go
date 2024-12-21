@@ -1,7 +1,6 @@
 package distance
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,7 +15,7 @@ type DirectionMeasures struct {
 	Duration float64
 }
 
-func Direction(lat float64, long float64) (DirectionMeasures, error) {
+func direction(lat float64, long float64) (DirectionMeasures, error) {
 	response, err := http.Get(directionsURL(lat, long))
 	if err != nil {
 		return DirectionMeasures{}, err
@@ -24,7 +23,7 @@ func Direction(lat float64, long float64) (DirectionMeasures, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return DirectionMeasures{}, errors.New(fmt.Sprintf("Error: HTTP request status code is %d instead of 200", response.StatusCode))
+		return DirectionMeasures{}, fmt.Errorf("error: HTTP request status code is %d instead of 200", response.StatusCode)
 	}
 
 	bodyBytes, err := io.ReadAll(response.Body)

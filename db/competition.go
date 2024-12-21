@@ -34,12 +34,14 @@ type Competition struct {
 	Date            string
 	Type            string
 	TypeSpecificId  string
-	WCAId           string // Legacy, use Type for that
+	WCAId           string // Legacy to check if the event is WCA, use Type for that
 	Distance        string
 	Duration        string
 	Events          []string // WCA API scrap
 	MainEvent       string   // WCA GeneralInfo scrap
 	CompetitorLimit int      // WCA GeneralInfo scrap
+	Latitude        float32  // WCA GeneralInfo scrap
+	Longitude       float32  // WCA GeneralInfo scrap
 	Registered      int      // WCA Registrations scrap
 }
 

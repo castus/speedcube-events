@@ -151,6 +151,7 @@ func (d *Database) FilterTravelInfoEligible() CompetitionsCollection {
 	items = items.FilterActive()
 	items = items.FilterNotOnline()
 	items = items.FilterEmptyDistanceOrDuration()
+	items = items.FilterHasEmptyCityOrLongitudeLatitude()
 
 	return items
 }

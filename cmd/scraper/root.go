@@ -60,12 +60,7 @@ var cmd = &cobra.Command{
 		onlyWCAEvents := mergedDatabase.FilterWCAApiEligible()
 		wcaAPIData := dataFetch.GetWCAApiData(makeWCAApiDTO(onlyWCAEvents))
 		for _, event := range onlyWCAEvents {
-			dbItem := mergedDatabase.Get(event.Id)
-			dbItem.Events = wcaAPIData[event.Id].Events
-			dbItem.MainEvent = wcaAPIData[event.Id].MainEvent
-			dbItem.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
-			dbItem.Registered = wcaAPIData[event.Id].Registered
-			mergedDatabase.Update(*dbItem)
+			updateWCAItem(event.Id, mergedDatabase, wcaAPIData[event.Id], event.WCAId)
 		}
 
 		// C4F events are WCA compliant, but their Id is different
@@ -82,13 +77,7 @@ var cmd = &cobra.Command{
 			dto := getWCAApiDTO(event.Id, WCAId)
 			out := []dataFetch.WCAApiDTO{dto}
 			wcaAPIData = dataFetch.GetWCAApiData(out)
-			dbItem := mergedDatabase.Get(event.Id)
-			dbItem.WCAId = WCAId
-			dbItem.Events = wcaAPIData[event.Id].Events
-			dbItem.MainEvent = wcaAPIData[event.Id].MainEvent
-			dbItem.CompetitorLimit = wcaAPIData[event.Id].CompetitorLimit
-			dbItem.Registered = wcaAPIData[event.Id].Registered
-			mergedDatabase.Update(*dbItem)
+			updateWCAItem(event.Id, mergedDatabase, wcaAPIData[event.Id], WCAId)
 		}
 
 		onlyTravelEligible := mergedDatabase.FilterTravelInfoEligible()
@@ -135,6 +124,18 @@ var cmd = &cobra.Command{
 		exporter.ExportForFrontend(*mergedDatabase)
 		exporter.PersistDatabase(*mergedDatabase)
 	},
+}
+
+func updateWCAItem(id string, database *db.Database, wcaAPIData dataFetch.WCAApiResponse, wcaID string) {
+	dbItem := database.Get(id)
+	dbItem.WCAId = wcaID
+	dbItem.Events = wcaAPIData.Events
+	dbItem.MainEvent = wcaAPIData.MainEvent
+	dbItem.CompetitorLimit = wcaAPIData.CompetitorLimit
+	dbItem.Registered = wcaAPIData.Registered
+	dbItem.Longitude = wcaAPIData.Longitude
+	dbItem.Latitude = wcaAPIData.Latitude
+	database.Update(*dbItem)
 }
 
 func makeWCAApiDTO(competitions db.CompetitionsCollection) []dataFetch.WCAApiDTO {
@@ -199,6 +200,8 @@ func makeTravelInfoDTO(competitions db.CompetitionsCollection) []distance.Travel
 		items = append(items, distance.TravelInfoDTO{
 			DatabaseId: competition.Id,
 			Place:      competition.Place,
+			Latitude:   competition.Latitude,
+			Longitude:  competition.Longitude,
 		})
 	}
 

@@ -9,11 +9,15 @@ import (
 )
 
 type TravelInfo struct {
-	Distance string
-	Duration string
+	Distance  string
+	Duration  string
+	Latitude  float32
+	Longitude float32
 }
 
 type TravelInfoDTO struct {
+	Latitude   float32
+	Longitude  float32
 	Place      string
 	DatabaseId string
 }
@@ -27,7 +31,7 @@ var log = logger.Default()
 func GetTravelData(ids []TravelInfoDTO) map[string]TravelInfo {
 	var events = make(map[string]TravelInfo)
 	for _, item := range ids {
-		travelInfo := fetchTravelInfo(item.Place, item.DatabaseId)
+		travelInfo := fetchTravelInfo(item.Place, item.DatabaseId, item.Latitude, item.Longitude)
 		events[item.DatabaseId] = TravelInfo{
 			Distance: travelInfo.Distance,
 			Duration: travelInfo.Duration,
@@ -37,12 +41,26 @@ func GetTravelData(ids []TravelInfoDTO) map[string]TravelInfo {
 	return events
 }
 
-func fetchTravelInfo(place string, id string) TravelInfo {
+func fetchTravelInfo(place string, id string, latitude float32, longitude float32) TravelInfo {
 	log.Info("Trying to fetch fetch travel info.", "ID", id)
 
-	travelInfo, err := distance(place)
+	coordinate := Coordinate{}
+
+	if latitude == 0 && longitude == 0 {
+		coor, err := geoCoding(place)
+		if err != nil {
+			log.Error("Fail to fetch coordinates for a place", "ID", id, "Place", place, "error", err)
+		}
+		coordinate.Latitude = coor.Latitude
+		coordinate.Longitude = coor.Longitude
+	}
+
+	coordinate.Latitude = float64(latitude)
+	coordinate.Longitude = float64(longitude)
+
+	travelInfo, err := getTravelInfo(coordinate)
 	if err != nil {
-		log.Error("Fail to fetch travel info", "ID", id, "error", err)
+		log.Error("Fail to fetch travel info", "ID", id, "lat", latitude, "lon", longitude, "error", err)
 	}
 
 	log.Info("Found fetch travel info.", "ID", id, "Distance", travelInfo.Distance, "Duration", travelInfo.Duration)
@@ -50,13 +68,20 @@ func fetchTravelInfo(place string, id string) TravelInfo {
 	return travelInfo
 }
 
-func distance(city string) (TravelInfo, error) {
+func geoCoding(city string) (Coordinate, error) {
 	coords, err := coordinates(city)
 	if err != nil {
-		return TravelInfo{}, err
+		return Coordinate{}, err
 	}
 
-	direction, err := Direction(coords.Latitude, coords.Longitude)
+	return Coordinate{
+		Latitude:  coords.Latitude,
+		Longitude: coords.Longitude,
+	}, nil
+}
+
+func getTravelInfo(coordinate Coordinate) (TravelInfo, error) {
+	direction, err := direction(coordinate.Latitude, coordinate.Longitude)
 	if err != nil {
 		return TravelInfo{}, err
 	}

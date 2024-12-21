@@ -33,6 +33,8 @@ type basicInfoJSONResponse struct {
 	MainEvent           string   `json:"main_event_id"`
 	CompetitorLimit     int      `json:"competitor_limit"`
 	RegistrationVersion string   `json:"registration_version"`
+	Latitude            float32  `json:"latitude_degrees"`
+	Longitude           float32  `json:"longitude_degrees"`
 }
 type registrationsJSONResponse struct {
 	Id int `json:"id"`
@@ -43,6 +45,8 @@ type WCAApiResponse struct {
 	MainEvent       string
 	CompetitorLimit int
 	Registered      int
+	Longitude       float32
+	Latitude        float32
 }
 
 type EventsMapResponse struct {
@@ -135,6 +139,8 @@ func GetWCAApiData(ids []WCAApiDTO) map[string]WCAApiResponse {
 			MainEvent:       basicInfo.MainEvent,
 			CompetitorLimit: basicInfo.CompetitorLimit,
 			Registered:      registered,
+			Latitude:        float32(basicInfo.Latitude),
+			Longitude:       float32(basicInfo.Longitude),
 		}
 	}
 
