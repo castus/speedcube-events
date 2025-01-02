@@ -60,7 +60,7 @@ var cmd = &cobra.Command{
 		onlyWCAEvents := mergedDatabase.FilterWCAApiEligible()
 		wcaAPIData := dataFetch.GetWCAApiData(makeWCAApiDTO(onlyWCAEvents))
 		for _, event := range onlyWCAEvents {
-			updateWCAItem(event.Id, mergedDatabase, wcaAPIData[event.Id], event.WCAId)
+			updateWCAItem(event.Id, mergedDatabase, wcaAPIData[event.Id], event.WCAId, true)
 		}
 
 		// C4F events are WCA compliant, but their Id is different
@@ -77,7 +77,10 @@ var cmd = &cobra.Command{
 			dto := getWCAApiDTO(event.Id, WCAId)
 			out := []dataFetch.WCAApiDTO{dto}
 			wcaAPIData = dataFetch.GetWCAApiData(out)
-			updateWCAItem(event.Id, mergedDatabase, wcaAPIData[event.Id], WCAId)
+
+			// C4F is weird, because the registered number of users is not available on WCA
+			// We have to scrap their website for that number
+			updateWCAItem(event.Id, mergedDatabase, wcaAPIData[event.Id], WCAId, false)
 		}
 
 		onlyTravelEligible := mergedDatabase.FilterTravelInfoEligible()
@@ -126,13 +129,15 @@ var cmd = &cobra.Command{
 	},
 }
 
-func updateWCAItem(id string, database *db.Database, wcaAPIData dataFetch.WCAApiResponse, wcaID string) {
+func updateWCAItem(id string, database *db.Database, wcaAPIData dataFetch.WCAApiResponse, wcaID string, includeRegistered bool) {
 	dbItem := database.Get(id)
 	dbItem.WCAId = wcaID
 	dbItem.Events = wcaAPIData.Events
 	dbItem.MainEvent = wcaAPIData.MainEvent
 	dbItem.CompetitorLimit = wcaAPIData.CompetitorLimit
-	dbItem.Registered = wcaAPIData.Registered
+	if includeRegistered {
+		dbItem.Registered = wcaAPIData.Registered
+	}
 	dbItem.Longitude = wcaAPIData.Longitude
 	dbItem.Latitude = wcaAPIData.Latitude
 	database.Update(*dbItem)

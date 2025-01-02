@@ -213,8 +213,8 @@ func TestFilterScrapEligible_Cube4Fun(t *testing.T) {
 		item1, item2, item3,
 	})
 	items := d.FilterScrapCube4FunEligible()
-	if len(items) != 1 {
-		t.Error("Expected 1 items, got ", len(items))
+	if len(items) != 2 {
+		t.Error("Expected 2 items, got ", len(items))
 	}
 }
 
@@ -239,8 +239,8 @@ func TestFilterScrapEligible_Cube4FunPassedEvents(t *testing.T) {
 		item1, item2, item3,
 	})
 	items := d.FilterScrapCube4FunEligible()
-	if len(items) != 0 {
-		t.Error("Expected 0 items, got ", len(items))
+	if len(items) != 1 {
+		t.Error("Expected 1 items, got ", len(items))
 	}
 }
 

@@ -35,7 +35,7 @@ func Run() {
 
 		s3Content := s3.Contents(bucketName, key)
 		if externalType == db.CompetitionType.Cube4Fun {
-			dbItem := Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)
+			dbItem := Cube4FunParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, dbItem)
 			database.Update(*dbItem)
 		} else if externalType == db.CompetitionType.PPO {
 			dbItem := PPOParse(bytes.NewReader([]byte(s3Content)), externalType, id, externalPageName, eventsMap, dbItem)

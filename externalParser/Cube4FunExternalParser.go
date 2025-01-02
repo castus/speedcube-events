@@ -6,23 +6,22 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/castus/speedcube-events/dataFetch"
 	"github.com/castus/speedcube-events/db"
 	"github.com/castus/speedcube-events/externalFetcher"
 )
 
-func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, eventsMap dataFetch.EventsMap, dbItem *db.Competition) *db.Competition {
+func Cube4FunParse(body io.Reader, competitionType string, id string, pageName string, dbItem *db.Competition) *db.Competition {
 	log.Info("Found Cube4Fun event, parsing ...", "type", competitionType, "id", id, "pageName", pageName)
 	pageNameItems := strings.Split(pageName, ".")
 	pageKey := pageNameItems[0]
 	if pageKey == externalFetcher.PageTypes.Info {
-		parseInfo(body, dbItem, eventsMap)
+		parseInfo(body, dbItem)
 	}
 
 	return dbItem
 }
 
-func parseInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.EventsMap) {
+func parseInfo(body io.Reader, dbItem *db.Competition) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		log.Error("Couldn't parse HTML with GoQuery", "error", err)
@@ -48,7 +47,6 @@ func parseInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.Event
 			if err != nil {
 				log.Error("Error during converting competitor limit from string to int for Cube4Fun", "error", err)
 			} else {
-				dbItem.CompetitorLimit = i
 				log.Info("Found Competitor limit for Cube4Fun", "competitorLimit", i)
 			}
 
@@ -59,18 +57,6 @@ func parseInfo(body io.Reader, dbItem *db.Competition, eventsMap dataFetch.Event
 				dbItem.Registered = i
 				log.Info("Found Registered competitors number limit for Cube4Fun", "registered", i)
 			}
-		}
-		if text == "events" || text == "konkurencje" {
-			var eventsArr = []string{}
-			events := row.Next()
-			events.Find("title").Each(func(i int, row *goquery.Selection) {
-				ev := trim(row.Text())
-				eventId, exists := eventsMap.IdByName(ev)
-				if exists {
-					eventsArr = append(eventsArr, eventId)
-				}
-			})
-			dbItem.Events = eventsArr
 		}
 	})
 

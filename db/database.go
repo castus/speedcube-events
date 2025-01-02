@@ -123,20 +123,11 @@ func (d *Database) FilterActive() CompetitionsCollection {
 
 func (d *Database) FilterScrapCube4FunEligible() CompetitionsCollection {
 	var items = d.GetAll()
-	var out = CompetitionsCollection{}
 	items = items.FilterActive()
 	items = items.FilterCube4Fun()
 	items = items.FilterHasURL()
-	for _, item := range items {
-		if item.CompetitorLimit == 0 &&
-			item.Registered == 0 &&
-			item.MainEvent == "" &&
-			len(item.Events) == 0 {
-			out = append(out, item)
-		}
-	}
 
-	return out
+	return items
 }
 
 func (d *Database) FilterScrapPPOEligible() CompetitionsCollection {

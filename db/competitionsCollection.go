@@ -126,7 +126,7 @@ func (c *CompetitionsCollection) FilterEmptyDistanceOrDuration() CompetitionsCol
 func (c *CompetitionsCollection) FilterHasEmptyCityOrLongitudeLatitude() CompetitionsCollection {
 	var items = CompetitionsCollection{}
 	for _, competition := range *c {
-		if competition.Place != "" || (competition.Latitude == 0 && competition.Latitude == 0) {
+		if competition.Place != "" || (competition.Latitude == 0 && competition.Longitude == 0) {
 			items = append(items, competition)
 		}
 	}
